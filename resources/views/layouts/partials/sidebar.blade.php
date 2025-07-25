@@ -1,0 +1,199 @@
+<!-- resources/views/layouts/partials/sidebar.blade.php -->
+<aside class="main-sidebar sidebar-dark-primary elevation-4">
+    <!-- Brand Logo -->
+    <a href="{{ route('dashboard') }}" class="brand-link">
+        <img src="{{ asset('img/logo.png') }}" alt="Criatório Coroné" class="brand-image img-circle elevation-3" style="opacity: .8">
+        <span class="brand-text font-weight-light">Criatório Coroné</span>
+    </a>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel (optional) -->
+        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+            <div class="image">
+                {{-- Lógica para carregar a imagem de perfil do usuário --}}
+                @php
+                    $userImagePath = 'img/' . (Auth::id() ?? 'default') . '.png'; // Assume 'default.png' se não houver ID
+                    $defaultImagePath = 'dist/img/user2-160x160.jpg'; // Imagem padrão do AdminLTE
+                @endphp
+                <img src="{{ asset($userImagePath) }}"
+                     class="img-circle elevation-2"
+                     alt="User Image"
+                     onerror="this.onerror=null;this.src='{{ asset($defaultImagePath) }}';"> {{-- Fallback em caso de erro --}}
+            </div>
+            <div class="info">
+                <a href="#" class="d-block">{{ Auth::user()->name ?? 'Utilizador' }}</a>
+            </div>
+        </div>
+
+        <!-- SidebarSearch Form -->
+        <div class="form-inline">
+            <div class="input-group" data-widget="sidebar-search">
+                <input class="form-control form-control-sidebar" type="search" placeholder="Pesquisar" aria-label="Search" name="query" id="sidebar-search-input">
+                <div class="input-group-append">
+                    <button class="btn btn-sidebar">
+                        <i class="fas fa-search fa-fw"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Menu -->
+        <nav class="mt-2">
+            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
+                <!-- Dashboard -->
+                <li class="nav-item">
+                    <a href="{{ route('dashboard') }}" class="nav-link {{ Request::routeIs('dashboard') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-tachometer-alt"></i> {{-- Ícone específico para Dashboard --}}
+                        <p>
+                            Dashboard
+                        </p>
+                    </a>
+                </li>
+
+                <!-- Menu Aves e Submenus -->
+                <li class="nav-item {{ Request::routeIs(['aves.*', 'tipos_aves.*', 'variacoes.*', 'lotes.*', 'acasalamentos.*', 'posturas_ovos.*', 'incubacoes.*']) ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::routeIs(['aves.*', 'tipos_aves.*', 'variacoes.*', 'lotes.*', 'acasalamentos.*', 'posturas_ovos.*', 'incubacoes.*']) ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-feather-alt"></i> {{-- Ícone principal para Aves --}}
+                        <p>
+                            Aves
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('aves.index') }}" class="nav-link {{ Request::routeIs(['aves.index', 'aves.create', 'aves.show', 'aves.edit']) ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-feather"></i> {{-- Ícone para Listar Aves --}}
+                                <p>Listar Aves</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('tipos_aves.index') }}" class="nav-link {{ Request::routeIs('tipos_aves.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-th-list"></i> {{-- Ícone para Tipos de Aves --}}
+                                <p>Tipos de Aves</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('variacoes.index') }}" class="nav-link {{ Request::routeIs('variacoes.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-palette"></i> {{-- Ícone para Variações --}}
+                                <p>Variações</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('lotes.index') }}" class="nav-link {{ Request::routeIs('lotes.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-boxes"></i> {{-- Ícone para Lotes --}}
+                                <p>Lotes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('acasalamentos.index') }}" class="nav-link {{ Request::routeIs('acasalamentos.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-heart"></i> {{-- Ícone para Acasalamentos --}}
+                                <p>Acasalamentos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('posturas_ovos.index') }}" class="nav-link {{ Request::routeIs('posturas_ovos.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-egg"></i> {{-- Ícone para Postura de Ovos --}}
+                                <p>Postura de Ovos</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('incubacoes.index') }}" class="nav-link {{ Request::routeIs('incubacoes.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-temperature-high"></i> {{-- Ícone para Incubação --}}
+                                <p>Incubação</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Separador Visual -->
+                <li class="nav-header">FINANCEIRO</li>
+
+                <!-- Menu Financeiro e Submenus -->
+                <li class="nav-item {{ Request::routeIs('financeiro.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::routeIs('financeiro.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-dollar-sign"></i> {{-- Ícone principal para Financeiro --}}
+                        <p>
+                            Financeiro
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.dashboard') }}" class="nav-link {{ Request::routeIs('financeiro.dashboard') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-chart-line"></i> {{-- Ícone para Dashboard Financeiro --}}
+                                <p>Dashboard Financeiro</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.receitas.index') }}" class="nav-link {{ Request::routeIs('financeiro.receitas.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-hand-holding-usd"></i> {{-- Ícone para Receitas --}}
+                                <p>Receitas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.despesas.index') }}" class="nav-link {{ Request::routeIs('financeiro.despesas.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-money-bill-wave"></i> {{-- Ícone para Despesas --}}
+                                <p>Despesas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.reservas.index') }}" class="nav-link {{ Request::routeIs('financeiro.reservas.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-calendar-check"></i> {{-- Ícone para Reservas --}}
+                                <p>Reservas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.vendas.index') }}" class="nav-link {{ Request::routeIs('financeiro.vendas.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-cash-register"></i> {{-- Ícone para Vendas --}}
+                                <p>Vendas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.categorias.index') }}" class="nav-link {{ Request::routeIs('financeiro.categorias.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-folder"></i> {{-- Ícone para Categorias Financeiras --}}
+                                <p>Categorias Financeiras</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.transacoes_recorrentes.index') }}" class="nav-link {{ Request::routeIs('financeiro.transacoes_recorrentes.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-redo"></i> {{-- Ícone para Transações Recorrentes --}}
+                                <p>Transações Recorrentes</p>
+                            </a>
+                        </li>
+                        {{-- NOVO: Link para o Contracheque --}}
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.contracheque.index') }}" class="nav-link {{ Request::routeIs('financeiro.contracheque.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-file-invoice-dollar"></i> {{-- Ícone para Contracheque --}}
+                                <p>Contracheque</p>
+                            </a>
+                        </li>
+                        {{-- Fim do NOVO link --}}
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.relatorios.index') }}" class="nav-link {{ Request::routeIs('financeiro.relatorios.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-chart-pie"></i> {{-- Ícone para Relatórios Financeiros --}}
+                                <p>Relatórios Financeiros</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Sair -->
+                <li class="nav-item">
+                    <a href="{{ route('logout') }}" class="nav-link"
+                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+                        <i class="nav-icon fas fa-sign-out-alt"></i> {{-- Ícone para Sair --}}
+                        <p>
+                            Sair
+                        </p>
+                    </a>
+                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
+                        @csrf
+                    </form>
+                </li>
+            </ul>
+        </nav>
+        <!-- /.sidebar-menu -->
+    </div>
+    <!-- /.sidebar -->
+</aside>
