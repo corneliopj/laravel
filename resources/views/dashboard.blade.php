@@ -37,14 +37,15 @@
         <section class="content">
             <div class="container-fluid">
                 <!-- Filtro de Período -->
+                {{-- Adicionado 'collapsed-card' para iniciar recolhido --}}
                 <div class="row">
                     <div class="col-md-12">
-                        <div class="card card-primary card-outline">
+                        <div class="card card-primary card-outline collapsed-card" id="card-filter">
                             <div class="card-header">
                                 <h3 class="card-title">Filtrar Dados</h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                        <i class="fas fa-minus"></i>
+                                        <i class="fas fa-plus"></i> {{-- Ícone de 'mais' quando recolhido --}}
                                     </button>
                                 </div>
                             </div>
@@ -116,8 +117,7 @@
                     <!-- ./col -->
                     <div class="col-lg-3 col-6">
                         <!-- small box -->
-                        <div class="small-box bg-success">
-                            <div class="inner">
+                        <div class="inner">
                                 <h3>{{ $ovosPostosNoPeriodo }}</h3>
                                 <p>Ovos Postos (Período)</p>
                             </div>
@@ -145,16 +145,18 @@
                 </div>
                 <!-- /.row -->
 
-                <!-- Main row -->
-                <div class="row">
-                    <!-- Left col -->
-                    <section class="col-lg-7 connectedSortable">
-                        <!-- Gráfico de Tendência de Eclosão -->
+                <!-- Main row - Componentes do Dashboard Sortable -->
+                {{-- Adicionado ID 'sortable-dashboard-cards' e classe 'sortable-cards-container' --}}
+                <div class="row sortable-cards-container" id="sortable-dashboard-cards">
+
+                    {{-- Linha 1: Calendário de Eventos (col-lg-5); Desempenho de Incubação por Chocadeira (col-lg-7) --}}
+                    <div class="col-lg-5 connectedSortable" id="sortable-card-calendar">
+                        <!-- Calendário de Eventos (FullCalendar) -->
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">
-                                    <i class="fas fa-chart-line mr-1"></i>
-                                    Tendência de Eclosão (Ovos Eclodidos)
+                                    <i class="fas fa-calendar-alt mr-1"></i>
+                                    Calendário de Eventos
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -163,13 +165,13 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="chart">
-                                    <canvas id="eclosionLineChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
-                                </div>
+                                <div id='calendar'></div>
                             </div>
                         </div>
                         <!-- /.card -->
+                    </div>
 
+                    <div class="col-lg-7 connectedSortable" id="sortable-card-chocadeira-performance">
                         <!-- Gráfico de Desempenho por Chocadeira -->
                         <div class="card">
                             <div class="card-header">
@@ -190,11 +192,10 @@
                             </div>
                         </div>
                         <!-- /.card -->
-                    </section>
-                    <!-- /.Left col -->
+                    </div>
 
-                    <!-- Right col -->
-                    <section class="col-lg-5 connectedSortable">
+                    {{-- Linha 2: Aves por Tipo (col-lg-5); Tendência de Eclosão (Ovos Eclodidos) (col-lg-7) --}}
+                    <div class="col-lg-5 connectedSortable" id="sortable-card-aves-by-type">
                         <!-- Gráfico de Aves por Tipo -->
                         <div class="card">
                             <div class="card-header">
@@ -213,7 +214,33 @@
                             </div>
                         </div>
                         <!-- /.card -->
+                    </div>
 
+                    <div class="col-lg-7 connectedSortable" id="sortable-card-eclosion-trend">
+                        <!-- Gráfico de Tendência de Eclosão -->
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-chart-line mr-1"></i>
+                                    Tendência de Eclosão (Ovos Eclodidos)
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart">
+                                    <canvas id="eclosionLineChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- /.card -->
+                    </div>
+
+                    {{-- Linha 3: Incubações Ativas (col-lg-12) --}}
+                    <div class="col-lg-12 connectedSortable" id="sortable-card-incubacoes-ativas">
                         <!-- TABLE: Incubações Ativas (Restaurada) -->
                         <div class="card card-primary card-outline">
                             <div class="card-header">
@@ -287,28 +314,8 @@
                             <!-- /.card-footer -->
                         </div>
                         <!-- /.card -->
+                    </div>
 
-                        <!-- Calendário de Eventos (FullCalendar) -->
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-calendar-alt mr-1"></i>
-                                    Calendário de Eventos
-                                </h3>
-                                <div class="card-tools">
-                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div id='calendar'></div>
-                            </div>
-                        </div>
-                        <!-- /.card -->
-
-                    </section>
-                    <!-- /.Right col -->
                 </div>
                 <!-- /.row (main row) -->
             </div><!-- /.container-fluid -->
@@ -573,5 +580,41 @@
             }
         });
         calendar.render(); // Renderiza o calendário
+
+        // --- Funcionalidade de Arrastar e Soltar (Sortable) ---
+        var sortableContainer = $('#sortable-dashboard-cards');
+        var cardOrderKey = 'dashboard_card_order';
+
+        // Carrega a ordem salva do localStorage ao carregar a página
+        var savedOrder = localStorage.getItem(cardOrderKey);
+        if (savedOrder) {
+            var order = JSON.parse(savedOrder);
+            $.each(order, function(index, cardId) {
+                sortableContainer.append($('#' + cardId));
+            });
+        }
+
+        // Inicializa o jQuery UI Sortable
+        sortableContainer.sortable({
+            handle: '.card-header', // Permite arrastar pelo cabeçalho do card
+            placeholder: 'sortable-placeholder', // Classe para o placeholder visual
+            forcePlaceholderSize: true,
+            opacity: 0.7,
+            cursor: 'grabbing',
+            update: function(event, ui) {
+                // Quando a ordem é atualizada, salva no localStorage
+                var newOrder = [];
+                sortableContainer.children('.connectedSortable').each(function() {
+                    newOrder.push($(this).attr('id'));
+                });
+                localStorage.setItem(cardOrderKey, JSON.stringify(newOrder));
+            }
+        });
+
+        // Adiciona um estilo básico para o placeholder
+        $("<style>")
+            .prop("type", "text/css")
+            .html(".sortable-placeholder { background-color: #f0f0f0; border: 1px dashed #ccc; height: 150px; margin-bottom: 15px; }")
+            .appendTo("head");
     });
 </script>
