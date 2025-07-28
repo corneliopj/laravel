@@ -117,6 +117,7 @@
                     <!-- ./col -->
                     <div class="col-lg-3 col-6">
                         <!-- small box -->
+                        <div class="small-box bg-success">
                         <div class="inner">
                                 <h3>{{ $ovosPostosNoPeriodo }}</h3>
                                 <p>Ovos Postos (Período)</p>
@@ -126,6 +127,7 @@
                             </div>
                             <a href="#" class="small-box-footer">Mais detalhes <i class="fas fa-arrow-circle-right"></i></a>
                         </div>
+                    </div>
                     </div>
                     <!-- ./col -->
                     <div class="col-lg-3 col-6">
