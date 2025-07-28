@@ -316,6 +316,7 @@
         <!-- /.content -->
     </div>
     <!-- /.content-wrapper -->
+    @include('layouts.partials.scripts')
     {{-- Inclui o partial footer --}}
     @include('layouts.partials.footer')
 </div>
@@ -511,10 +512,6 @@
                         display: true,
                         labelString: 'Taxa de Eclosão (%)'
                     }
-                }],
-                xAxes: [{
-                    barPercentage: 0.7, // Largura das barras
-                    categoryPercentage: 0.8 // Espaçamento entre as categorias
                 }]
             },
             tooltips: {

@@ -109,18 +109,24 @@ class DashboardController extends Controller
                                     ->with('lote', 'tipoAve')
                                     ->get()
                                     ->map(function ($incubacao) {
-                                        $diasPassados = Carbon::parse($incubacao->data_inicio)->diffInDays(Carbon::now());
-                                        $duracaoTotal = Carbon::parse($incubacao->data_inicio)->diffInDays($incubacao->data_prevista_eclosao);
+                                        // Adiciona verificações de nulo para data_inicio e data_prevista_eclosao
+                                        $diasPassados = ($incubacao->data_inicio && Carbon::now()->greaterThanOrEqualTo($incubacao->data_inicio))
+                                            ? Carbon::parse($incubacao->data_inicio)->diffInDays(Carbon::now())
+                                            : 0;
+                                        $duracaoTotal = ($incubacao->data_inicio && $incubacao->data_prevista_eclosao)
+                                            ? Carbon::parse($incubacao->data_inicio)->diffInDays($incubacao->data_prevista_eclosao)
+                                            : 0;
+
                                         $progressPercentage = ($duracaoTotal > 0) ? round(($diasPassados / $duracaoTotal) * 100, 2) : 0;
 
                                         $status = 'Em andamento';
-                                        if (Carbon::now()->greaterThan($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
+                                        if ($incubacao->data_prevista_eclosao && Carbon::now()->greaterThan($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
                                             $status = 'Atrasado';
                                         }
                                         if (!$incubacao->ativo && $incubacao->quantidade_eclodidos > 0) {
                                             $status = 'Concluído';
                                         }
-                                        if (Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false) <= 3 && Carbon::now()->lessThanOrEqualTo($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
+                                        if ($incubacao->data_prevista_eclosao && Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false) <= 3 && Carbon::now()->lessThanOrEqualTo($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
                                             $status = 'Finalizando';
                                         }
 
@@ -130,8 +136,8 @@ class DashboardController extends Controller
                                             'tipo_ave_nome' => $incubacao->tipoAve->nome ?? 'N/A',
                                             'chocadeira' => $incubacao->chocadeira,
                                             'quantidade_ovos' => $incubacao->quantidade_ovos,
-                                            'data_inicio' => $incubacao->data_inicio->format('d/m/Y'),
-                                            'data_prevista_eclosao' => $incubacao->data_prevista_eclosao->format('d/m/Y'),
+                                            'data_inicio' => $incubacao->data_inicio ? $incubacao->data_inicio->format('d/m/Y') : 'N/A', // Verificação de nulo
+                                            'data_prevista_eclosao' => $incubacao->data_prevista_eclosao ? $incubacao->data_prevista_eclosao->format('d/m/Y') : 'N/A', // Verificação de nulo
                                             'progress_percentage' => min(100, max(0, $progressPercentage)), // Garante que o progresso esteja entre 0 e 100
                                             'status' => $status,
                                             'link_detalhes' => route('incubacoes.show', $incubacao->id), // Exemplo de link
@@ -149,12 +155,14 @@ class DashboardController extends Controller
                                     ->get();
 
         foreach ($proximasEclosoes as $eclosao) {
-            $calendarEvents[] = [
-                'title' => 'Eclosão: Choc. ' . $eclosao->chocadeira . ' (' . $eclosao->quantidade_ovos . ' ovos)',
-                'start' => $eclosao->data_prevista_eclosao->format('Y-m-d'),
-                'color' => '#28a745', // Verde para eclosões
-                'url' => route('incubacoes.show', $eclosao->id), // Link para detalhes da incubação
-            ];
+            if ($eclosao->data_prevista_eclosao) { // Verificação de nulo
+                $calendarEvents[] = [
+                    'title' => 'Eclosão: Choc. ' . $eclosao->chocadeira . ' (' . $eclosao->quantidade_ovos . ' ovos)',
+                    'start' => $eclosao->data_prevista_eclosao->format('Y-m-d'),
+                    'color' => '#28a745', // Verde para eclosões
+                    'url' => route('incubacoes.show', $eclosao->id), // Link para detalhes da incubação
+                ];
+            }
         }
 
         // Adiciona Próximos Acasalamentos como eventos
@@ -165,14 +173,15 @@ class DashboardController extends Controller
                                     ->get();
 
         foreach ($proximosAcasalamentos as $acasalamento) {
-            $calendarEvents[] = [
-                'title' => 'Acasalamento: Macho ' . $acasalamento->macho_id . ' / Fêmea ' . $acasalamento->femea_id,
-                'start' => Carbon::parse($acasalamento->data_inicio)->format('Y-m-d'),
-                'color' => '#007bff', // Azul para acasalamentos
-                // 'url' => route('acasalamentos.show', $acasalamento->id), // Se houver rota de detalhes
-            ];
+            if ($acasalamento->data_inicio) { // Verificação de nulo
+                $calendarEvents[] = [
+                    'title' => 'Acasalamento: Macho ' . ($acasalamento->macho_id ?? 'N/A') . ' / Fêmea ' . ($acasalamento->femea_id ?? 'N/A'),
+                    'start' => Carbon::parse($acasalamento->data_inicio)->format('Y-m-d'),
+                    'color' => '#007bff', // Azul para acasalamentos
+                    // 'url' => route('acasalamentos.show', $acasalamento->id), // Se houver rota de detalhes
+                ];
+            }
         }
-
 
         // 9. Alertas Dinâmicos (Exemplos)
         $alertas = [];
@@ -184,11 +193,13 @@ class DashboardController extends Controller
                                         ->get();
         if ($incubacoesProximas->count() > 0) {
             foreach ($incubacoesProximas as $incubacao) {
-                $diasRestantes = Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false);
-                $alertas[] = [
-                    'type' => 'warning',
-                    'message' => "A incubação na chocadeira '{$incubacao->chocadeira}' (ID: {$incubacao->id}) tem eclosão prevista em {$incubacao->data_prevista_eclosao->format('d/m/Y')}. Faltam {$diasRestantes} dias.",
-                ];
+                if ($incubacao->data_prevista_eclosao) { // Verificação de nulo
+                    $diasRestantes = Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false);
+                    $alertas[] = [
+                        'type' => 'warning',
+                        'message' => "A incubação na chocadeira '{$incubacao->chocadeira}' (ID: {$incubacao->id}) tem eclosão prevista em {$incubacao->data_prevista_eclosao->format('d/m/Y')}. Faltam {$diasRestantes} dias.",
+                    ];
+                }
             }
         }
 
