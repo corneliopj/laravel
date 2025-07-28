@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Ave;
 use App\Models\Incubacao;
-use App->Models->Morte;
-use App\Models->TipoAve;
-use App->Models->Lote;
-use App->Models->PosturaOvo;
-use App->Models->Venda; // Importar o modelo de Venda
-use Illuminate->Http->Request;
+use App\Models\Morte; // CORRIGIDO: De App->Models->Morte para App\Models\Morte
+use App\Models\TipoAve;
+use App\Models\Lote;
+use App\Models\PosturaOvo;
+use App\Models\Venda; // Importar o modelo de Venda
+use Illuminate\Http\Request;
 use Carbon\Carbon;
-use Illuminate->Support\Facades\DB;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
