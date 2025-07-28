@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Ave;
 use App\Models\Incubacao;
-use App\Models\Morte;
-use App\Models\TipoAve;
-use App\Models\Lote;
-use App\Models\PosturaOvo;
-use App\Models\Venda; // Importar o modelo de Venda
-use Illuminate\Http\Request;
+use App->Models->Morte;
+use App\Models->TipoAve;
+use App->Models->Lote;
+use App->Models->PosturaOvo;
+use App->Models->Venda; // Importar o modelo de Venda
+use Illuminate->Http->Request;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use Illuminate->Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -55,19 +55,47 @@ class DashboardController extends Controller
             return $item->total;
         })->toArray();
 
-        // 5. Tendência de Eclosão (Gráfico de Linha) - Ovos eclodidos por mês
+        // 5. Tendência de Eclosão (Gráfico de Linha) - Ovos eclodidos por semana (60 dias)
+        $dataInicio60Dias = Carbon::now()->subDays(60)->startOfDay();
+        $dataFimAtual = Carbon::now()->endOfDay();
+
         $tendenciaEclosao = Incubacao::select(
-                                DB::raw('DATE_FORMAT(data_prevista_eclosao, "%Y-%m") as mes_ano'),
+                                DB::raw('YEAR(data_prevista_eclosao) as ano'),
+                                DB::raw('WEEK(data_prevista_eclosao, 1) as semana'), // 1 = semana começa no domingo
                                 DB::raw('SUM(quantidade_eclodidos) as total_eclodidos')
                             )
                             ->whereNotNull('data_prevista_eclosao')
-                            ->whereBetween('data_prevista_eclosao', [$dataInicio, $dataFim])
-                            ->groupBy('mes_ano')
-                            ->orderBy('mes_ano')
+                            ->whereBetween('data_prevista_eclosao', [$dataInicio60Dias, $dataFimAtual])
+                            ->groupBy('ano', 'semana')
+                            ->orderBy('ano')
+                            ->orderBy('semana')
                             ->get();
 
-        $labelsTendenciaEclosao = $tendenciaEclosao->pluck('mes_ano')->toArray();
-        $dadosTendenciaEclosao = $tendenciaEclosao->pluck('total_eclodidos')->toArray();
+        $labelsTendenciaEclosao = [];
+        $dadosTendenciaEclosao = [];
+
+        // Preencher semanas vazias para um gráfico contínuo
+        $currentWeek = Carbon::parse($dataInicio60Dias);
+        while ($currentWeek->lessThanOrEqualTo($dataFimAtual)) {
+            $year = $currentWeek->year;
+            $week = $currentWeek->weekOfYear; // weekOfYear é mais comum para FullCalendar
+            $label = "Semana {$week} / {$year}";
+            $labelsTendenciaEclosao[] = $label;
+
+            $found = false;
+            foreach ($tendenciaEclosao as $item) {
+                if ($item->ano == $year && $item->semana == $week) {
+                    $dadosTendenciaEclosao[] = $item->total_eclodidos;
+                    $found = true;
+                    break;
+                }
+            }
+            if (!$found) {
+                $dadosTendenciaEclosao[] = 0; // Adiciona 0 se não houver dados para a semana
+            }
+            $currentWeek->addWeek();
+        }
+
 
         // 6. Desempenho de Incubação por Chocadeira (Gráfico de Barras)
         // Foco na Taxa de Eclosão Percentual
@@ -109,7 +137,6 @@ class DashboardController extends Controller
                                     ->with('lote', 'tipoAve')
                                     ->get()
                                     ->map(function ($incubacao) {
-                                        // Adiciona verificações de nulo para data_inicio e data_prevista_eclosao
                                         $diasPassados = ($incubacao->data_inicio && Carbon::now()->greaterThanOrEqualTo($incubacao->data_inicio))
                                             ? Carbon::parse($incubacao->data_inicio)->diffInDays(Carbon::now())
                                             : 0;

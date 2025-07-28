@@ -86,8 +86,9 @@
                 </div>
 
                 <!-- Small boxes (Stat box) - KPIs Destacados -->
+                {{-- Ajustado para garantir que fiquem na mesma linha --}}
                 <div class="row">
-                    <div class="col-lg-3 col-6">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                         <!-- small box -->
                         <div class="small-box bg-info">
                             <div class="inner">
@@ -101,7 +102,7 @@
                         </div>
                     </div>
                     <!-- ./col -->
-                    <div class="col-lg-3 col-6">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                         <!-- small box -->
                         <div class="small-box bg-danger">
                             <div class="inner">
@@ -115,10 +116,10 @@
                         </div>
                     </div>
                     <!-- ./col -->
-                    <div class="col-lg-3 col-6">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                         <!-- small box -->
                         <div class="small-box bg-success">
-                        <div class="inner">
+                            <div class="inner">
                                 <h3>{{ $ovosPostosNoPeriodo }}</h3>
                                 <p>Ovos Postos (Período)</p>
                             </div>
@@ -128,9 +129,8 @@
                             <a href="#" class="small-box-footer">Mais detalhes <i class="fas fa-arrow-circle-right"></i></a>
                         </div>
                     </div>
-                    </div>
                     <!-- ./col -->
-                    <div class="col-lg-3 col-6">
+                    <div class="col-lg-3 col-md-6 col-sm-6 col-12">
                         <!-- small box -->
                         <div class="small-box bg-warning">
                             <div class="inner">
@@ -151,7 +151,13 @@
                 {{-- Adicionado ID 'sortable-dashboard-cards' e classe 'sortable-cards-container' --}}
                 <div class="row sortable-cards-container" id="sortable-dashboard-cards">
 
-                    {{-- Linha 1: Calendário de Eventos (col-lg-5); Desempenho de Incubação por Chocadeira (col-lg-7) --}}
+                    {{-- Ordem padrão:
+                    linha 1: calendário de eventos (col-lg-5); Desempenho de Incubação por Chocadeira (col-lg-7);
+                    linha 2: Aves por Tipo (col-lg-5); Tendência de Eclosão (Ovos Eclodidos) (col-lg-7).
+                    linha 3: Incubações Ativas (col-lg-12);
+                    --}}
+
+                    {{-- Linha 1 --}}
                     <div class="col-lg-5 connectedSortable" id="sortable-card-calendar">
                         <!-- Calendário de Eventos (FullCalendar) -->
                         <div class="card">
@@ -196,7 +202,7 @@
                         <!-- /.card -->
                     </div>
 
-                    {{-- Linha 2: Aves por Tipo (col-lg-5); Tendência de Eclosão (Ovos Eclodidos) (col-lg-7) --}}
+                    {{-- Linha 2 --}}
                     <div class="col-lg-5 connectedSortable" id="sortable-card-aves-by-type">
                         <!-- Gráfico de Aves por Tipo -->
                         <div class="card">
@@ -241,7 +247,7 @@
                         <!-- /.card -->
                     </div>
 
-                    {{-- Linha 3: Incubações Ativas (col-lg-12) --}}
+                    {{-- Linha 3 --}}
                     <div class="col-lg-12 connectedSortable" id="sortable-card-incubacoes-ativas">
                         <!-- TABLE: Incubações Ativas (Restaurada) -->
                         <div class="card card-primary card-outline">
@@ -399,7 +405,7 @@
             options: avesPorTipoPieOptions
         });
 
-        // Gráfico de Tendência de Eclosão (Linha)
+        // Gráfico de Tendência de Eclosão (Linha) - Agora por Semana (60 dias)
         var eclosionLineChartCanvas = $('#eclosionLineChart').get(0).getContext('2d');
         var eclosionLineChartData = {
             labels: {!! json_encode($labelsTendenciaEclosao) !!},
@@ -587,14 +593,26 @@
         var sortableContainer = $('#sortable-dashboard-cards');
         var cardOrderKey = 'dashboard_card_order';
 
-        // Carrega a ordem salva do localStorage ao carregar a página
+        // Define a ordem padrão dos cards
+        var defaultOrder = [
+            'sortable-card-calendar',
+            'sortable-card-chocadeira-performance',
+            'sortable-card-aves-by-type',
+            'sortable-card-eclosion-trend',
+            'sortable-card-incubacoes-ativas'
+        ];
+
+        // Carrega a ordem salva do localStorage ou usa a padrão
         var savedOrder = localStorage.getItem(cardOrderKey);
-        if (savedOrder) {
-            var order = JSON.parse(savedOrder);
-            $.each(order, function(index, cardId) {
-                sortableContainer.append($('#' + cardId));
-            });
-        }
+        var orderToApply = savedOrder ? JSON.parse(savedOrder) : defaultOrder;
+
+        // Aplica a ordem aos cards
+        $.each(orderToApply, function(index, cardId) {
+            var cardElement = $('#' + cardId);
+            if (cardElement.length) { // Verifica se o elemento existe antes de tentar anexar
+                sortableContainer.append(cardElement);
+            }
+        });
 
         // Inicializa o jQuery UI Sortable
         sortableContainer.sortable({
