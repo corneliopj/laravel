@@ -129,7 +129,13 @@
                         <!-- small box -->
                         <div class="small-box bg-warning">
                             <div class="inner">
-                                <h3>{{ number_format($taxasEclosaoChocadeira[0] ?? 0, 2) }}<sup style="font-size: 20px">%</sup></h3>
+                                {{-- A taxa de eclosão média é um cálculo que pode ser mais complexo de um único KPI,
+                                     se baseia em todas as incubações. Para simplificar, vou usar um valor fixo ou
+                                     remover se não tiver uma lógica clara no controller para isso.
+                                     Se $taxasEclosaoChocadeira[0] não existir, pode causar erro.
+                                     Melhor calcular a média aqui ou no controller.
+                                     Por enquanto, vou deixar como está, mas com um fallback para 0. --}}
+                                <h3>{{ number_format(collect($taxasEclosaoChocadeira)->avg() ?? 0, 2) }}<sup style="font-size: 20px">%</sup></h3>
                                 <p>Taxa de Eclosão Média</p>
                             </div>
                             <div class="icon">
@@ -237,7 +243,8 @@
                                         <tbody>
                                             @forelse ($proximasEclosoes as $eclosao)
                                                 <tr>
-                                                    <td>{{ $eclosao->data_eclosao_prevista->format('d/m') }}</td>
+                                                    {{-- CORRIGIDO: Usando data_prevista_eclosao --}}
+                                                    <td>{{ $eclosao->data_prevista_eclosao->format('d/m') }}</td>
                                                     <td><span class="badge badge-success">Eclosão</span></td>
                                                     <td>Chocadeira: {{ $eclosao->chocadeira }} ({{ $eclosao->quantidade_ovos }} ovos)</td>
                                                 </tr>
@@ -454,10 +461,6 @@
                         display: true,
                         labelString: 'Taxa de Eclosão (%)'
                     }
-                }],
-                xAxes: [{
-                    barPercentage: 0.7, // Largura das barras
-                    categoryPercentage: 0.8 // Espaçamento entre as categorias
                 }]
             },
             tooltips: {

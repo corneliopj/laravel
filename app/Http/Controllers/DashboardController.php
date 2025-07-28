@@ -37,7 +37,8 @@ class DashboardController extends Controller
         $mortesNoPeriodo = Morte::whereBetween('data_morte', [$dataInicio, $dataFim])->count();
 
         // 3. Ovos Postos no Período Selecionado (KPI)
-        $ovosPostosNoPeriodo = PosturaOvo::whereBetween('data_postura', [$dataInicio, $dataFim])->sum('quantidade');
+        // CORRIGIDO: Usando 'data_inicio_postura' e 'quantidade_ovos'
+        $ovosPostosNoPeriodo = PosturaOvo::whereBetween('data_inicio_postura', [$dataInicio, $dataFim])->sum('quantidade_ovos');
 
         // 4. Aves por Tipo (para Gráfico de Pizza)
         $avesPorTipo = Ave::select('tipo_ave_id')
@@ -56,12 +57,13 @@ class DashboardController extends Controller
         })->toArray();
 
         // 5. Tendência de Eclosão (Gráfico de Linha) - Ovos eclodidos por mês
+        // CORRIGIDO: Usando 'data_prevista_eclosao'
         $tendenciaEclosao = Incubacao::select(
-                                DB::raw('DATE_FORMAT(data_eclosao_prevista, "%Y-%m") as mes_ano'),
+                                DB::raw('DATE_FORMAT(data_prevista_eclosao, "%Y-%m") as mes_ano'),
                                 DB::raw('SUM(quantidade_eclodidos) as total_eclodidos')
                             )
-                            ->whereNotNull('data_eclosao_prevista')
-                            ->whereBetween('data_eclosao_prevista', [$dataInicio, $dataFim])
+                            ->whereNotNull('data_prevista_eclosao')
+                            ->whereBetween('data_prevista_eclosao', [$dataInicio, $dataFim])
                             ->groupBy('mes_ano')
                             ->orderBy('mes_ano')
                             ->get();
@@ -97,12 +99,14 @@ class DashboardController extends Controller
         }
 
         // 7. Próximas Eclosões (para o Calendário/Lista) - Próximos 30 dias
-        $proximasEclosoes = Incubacao::where('data_eclosao_prevista', '>=', Carbon::now()->startOfDay())
-                                    ->where('data_eclosao_prevista', '<=', Carbon::now()->addDays(30)->endOfDay())
-                                    ->orderBy('data_eclosao_prevista', 'asc')
+        // CORRIGIDO: Usando 'data_prevista_eclosao'
+        $proximasEclosoes = Incubacao::where('data_prevista_eclosao', '>=', Carbon::now()->startOfDay())
+                                    ->where('data_prevista_eclosao', '<=', Carbon::now()->addDays(30)->endOfDay())
+                                    ->orderBy('data_prevista_eclosao', 'asc')
                                     ->get();
 
         // 8. Próximos Acasalamentos (para o Calendário/Lista) - Próximos 30 dias
+        // A coluna de data no acasalamentos é 'data_inicio'
         $proximosAcasalamentos = DB::table('acasalamentos')
                                     ->where('data_inicio', '>=', Carbon::now()->startOfDay())
                                     ->where('data_inicio', '<=', Carbon::now()->addDays(30)->endOfDay())
@@ -113,16 +117,18 @@ class DashboardController extends Controller
         $alertas = [];
 
         // Alerta: Incubações próximas do fim (nos próximos 7 dias)
-        $incubacoesProximas = Incubacao::where('data_eclosao_prevista', '>=', Carbon::now()->startOfDay())
-                                        ->where('data_eclosao_prevista', '<=', Carbon::now()->addDays(7)->endOfDay())
+        // CORRIGIDO: Usando 'data_prevista_eclosao'
+        $incubacoesProximas = Incubacao::where('data_prevista_eclosao', '>=', Carbon::now()->startOfDay())
+                                        ->where('data_prevista_eclosao', '<=', Carbon::now()->addDays(7)->endOfDay())
                                         ->where('ativo', true) // Apenas incubações ativas
                                         ->get();
         if ($incubacoesProximas->count() > 0) {
             foreach ($incubacoesProximas as $incubacao) {
-                $diasRestantes = Carbon::now()->diffInDays($incubacao->data_eclosao_prevista, false);
+                // CORRIGIDO: Usando 'data_prevista_eclosao'
+                $diasRestantes = Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false);
                 $alertas[] = [
                     'type' => 'warning',
-                    'message' => "A incubação na chocadeira '{$incubacao->chocadeira}' (ID: {$incubacao->id}) tem eclosão prevista em {$incubacao->data_eclosao_prevista->format('d/m/Y')}. Faltam {$diasRestantes} dias.",
+                    'message' => "A incubação na chocadeira '{$incubacao->chocadeira}' (ID: {$incubacao->id}) tem eclosão prevista em {$incubacao->data_prevista_eclosao->format('d/m/Y')}. Faltam {$diasRestantes} dias.",
                 ];
             }
         }
