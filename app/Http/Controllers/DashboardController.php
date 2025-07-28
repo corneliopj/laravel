@@ -37,7 +37,6 @@ class DashboardController extends Controller
         $mortesNoPeriodo = Morte::whereBetween('data_morte', [$dataInicio, $dataFim])->count();
 
         // 3. Ovos Postos no Período Selecionado (KPI)
-        // CORRIGIDO: Usando 'data_inicio_postura' e 'quantidade_ovos'
         $ovosPostosNoPeriodo = PosturaOvo::whereBetween('data_inicio_postura', [$dataInicio, $dataFim])->sum('quantidade_ovos');
 
         // 4. Aves por Tipo (para Gráfico de Pizza)
@@ -57,7 +56,6 @@ class DashboardController extends Controller
         })->toArray();
 
         // 5. Tendência de Eclosão (Gráfico de Linha) - Ovos eclodidos por mês
-        // CORRIGIDO: Usando 'data_prevista_eclosao'
         $tendenciaEclosao = Incubacao::select(
                                 DB::raw('DATE_FORMAT(data_prevista_eclosao, "%Y-%m") as mes_ano'),
                                 DB::raw('SUM(quantidade_eclodidos) as total_eclodidos')
@@ -72,7 +70,7 @@ class DashboardController extends Controller
         $dadosTendenciaEclosao = $tendenciaEclosao->pluck('total_eclodidos')->toArray();
 
         // 6. Desempenho de Incubação por Chocadeira (Gráfico de Barras)
-        // Este gráfico deve considerar incubações ativas e inativas para um panorama completo
+        // Foco na Taxa de Eclosão Percentual
         $desempenhoChocadeira = Incubacao::select(
                                     'chocadeira',
                                     DB::raw('SUM(quantidade_ovos) as total_ovos'),
@@ -85,7 +83,7 @@ class DashboardController extends Controller
         $labelsChocadeira = [];
         $totalOvosPorChocadeira = [];
         $totalEclodidosPorChocadeira = [];
-        $taxasEclosaoChocadeira = [];
+        $taxasEclosaoChocadeira = []; // Array para as taxas de eclosão percentuais
 
         foreach ($desempenhoChocadeira as $item) {
             $chocadeiraNome = $item->chocadeira ?? 'Não Definida';
@@ -98,33 +96,94 @@ class DashboardController extends Controller
             $taxasEclosaoChocadeira[] = $taxaEclosao;
         }
 
-        // 7. Próximas Eclosões (para o Calendário/Lista) - Próximos 30 dias
-        // CORRIGIDO: Usando 'data_prevista_eclosao'
+        // Calcula a Taxa de Eclosão Média Geral para o KPI
+        $totalOvosGeral = array_sum($totalOvosPorChocadeira);
+        $totalEclodidosGeral = array_sum($totalEclodidosPorChocadeira);
+        $totalInferteisGeral = array_sum($desempenhoChocadeira->pluck('total_inferteis')->toArray());
+        $ovosViaveisGeral = $totalOvosGeral - $totalInferteisGeral;
+        $taxaEclosaoMediaGeral = ($ovosViaveisGeral > 0) ? round(($totalEclodidosGeral / $ovosViaveisGeral) * 100, 2) : 0;
+
+
+        // 7. Incubações Ativas (para a Tabela)
+        $incubacoesData = Incubacao::where('ativo', true)
+                                    ->with('lote', 'tipoAve')
+                                    ->get()
+                                    ->map(function ($incubacao) {
+                                        $diasPassados = Carbon::parse($incubacao->data_inicio)->diffInDays(Carbon::now());
+                                        $duracaoTotal = Carbon::parse($incubacao->data_inicio)->diffInDays($incubacao->data_prevista_eclosao);
+                                        $progressPercentage = ($duracaoTotal > 0) ? round(($diasPassados / $duracaoTotal) * 100, 2) : 0;
+
+                                        $status = 'Em andamento';
+                                        if (Carbon::now()->greaterThan($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
+                                            $status = 'Atrasado';
+                                        }
+                                        if (!$incubacao->ativo && $incubacao->quantidade_eclodidos > 0) {
+                                            $status = 'Concluído';
+                                        }
+                                        if (Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false) <= 3 && Carbon::now()->lessThanOrEqualTo($incubacao->data_prevista_eclosao) && $incubacao->ativo) {
+                                            $status = 'Finalizando';
+                                        }
+
+                                        return [
+                                            'id' => $incubacao->id,
+                                            'lote_nome' => $incubacao->lote->nome ?? 'N/A',
+                                            'tipo_ave_nome' => $incubacao->tipoAve->nome ?? 'N/A',
+                                            'chocadeira' => $incubacao->chocadeira,
+                                            'quantidade_ovos' => $incubacao->quantidade_ovos,
+                                            'data_inicio' => $incubacao->data_inicio->format('d/m/Y'),
+                                            'data_prevista_eclosao' => $incubacao->data_prevista_eclosao->format('d/m/Y'),
+                                            'progress_percentage' => min(100, max(0, $progressPercentage)), // Garante que o progresso esteja entre 0 e 100
+                                            'status' => $status,
+                                            'link_detalhes' => route('incubacoes.show', $incubacao->id), // Exemplo de link
+                                        ];
+                                    });
+
+        // 8. Eventos para o Calendário (FullCalendar) - Próximos 30 dias
+        $calendarEvents = [];
+
+        // Adiciona Próximas Eclosões como eventos
         $proximasEclosoes = Incubacao::where('data_prevista_eclosao', '>=', Carbon::now()->startOfDay())
                                     ->where('data_prevista_eclosao', '<=', Carbon::now()->addDays(30)->endOfDay())
+                                    ->where('ativo', true)
                                     ->orderBy('data_prevista_eclosao', 'asc')
                                     ->get();
 
-        // 8. Próximos Acasalamentos (para o Calendário/Lista) - Próximos 30 dias
-        // A coluna de data no acasalamentos é 'data_inicio'
+        foreach ($proximasEclosoes as $eclosao) {
+            $calendarEvents[] = [
+                'title' => 'Eclosão: Choc. ' . $eclosao->chocadeira . ' (' . $eclosao->quantidade_ovos . ' ovos)',
+                'start' => $eclosao->data_prevista_eclosao->format('Y-m-d'),
+                'color' => '#28a745', // Verde para eclosões
+                'url' => route('incubacoes.show', $eclosao->id), // Link para detalhes da incubação
+            ];
+        }
+
+        // Adiciona Próximos Acasalamentos como eventos
         $proximosAcasalamentos = DB::table('acasalamentos')
                                     ->where('data_inicio', '>=', Carbon::now()->startOfDay())
                                     ->where('data_inicio', '<=', Carbon::now()->addDays(30)->endOfDay())
                                     ->orderBy('data_inicio', 'asc')
                                     ->get();
 
+        foreach ($proximosAcasalamentos as $acasalamento) {
+            $calendarEvents[] = [
+                'title' => 'Acasalamento: Macho ' . $acasalamento->macho_id . ' / Fêmea ' . $acasalamento->femea_id,
+                'start' => Carbon::parse($acasalamento->data_inicio)->format('Y-m-d'),
+                'color' => '#007bff', // Azul para acasalamentos
+                // 'url' => route('acasalamentos.show', $acasalamento->id), // Se houver rota de detalhes
+            ];
+        }
+
+
         // 9. Alertas Dinâmicos (Exemplos)
         $alertas = [];
 
         // Alerta: Incubações próximas do fim (nos próximos 7 dias)
-        // CORRIGIDO: Usando 'data_prevista_eclosao'
         $incubacoesProximas = Incubacao::where('data_prevista_eclosao', '>=', Carbon::now()->startOfDay())
                                         ->where('data_prevista_eclosao', '<=', Carbon::now()->addDays(7)->endOfDay())
                                         ->where('ativo', true) // Apenas incubações ativas
                                         ->get();
         if ($incubacoesProximas->count() > 0) {
             foreach ($incubacoesProximas as $incubacao) {
-                // CORRIGIDO: Usando 'data_prevista_eclosao'
                 $diasRestantes = Carbon::now()->diffInDays($incubacao->data_prevista_eclosao, false);
                 $alertas[] = [
                     'type' => 'warning',
@@ -133,27 +192,11 @@ class DashboardController extends Controller
             }
         }
 
-        // Alerta: Aves sem acasalamento recente (ex: nos últimos 60 dias para aves reprodutoras)
-        // Isso exigiria um campo 'data_ultimo_acasalamento' ou uma consulta mais complexa
-        // Por simplicidade, vamos apenas adicionar um alerta de exemplo aqui.
-        // Você precisaria de lógica para identificar "aves reprodutoras" e sua última atividade.
-        // Exemplo:
-        // $avesSemAcasalamento = Ave::where('tipo_ave_id', TipoAve::where('nome', 'Reprodutora')->first()->id)
-        //                             ->whereDoesntHave('acasalamentos', function ($query) {
-        //                                 $query->where('data_inicio', '>=', Carbon::now()->subDays(60));
-        //                             })->get();
-        // if ($avesSemAcasalamento->count() > 0) {
-        //     $alertas[] = [
-        //         'type' => 'info',
-        //         'message' => "Existem {$avesSemAcasalamento->count()} aves reprodutoras sem acasalamento nos últimos 60 dias.",
-        //     ];
-        // }
-
-
         return view('dashboard', compact(
             'totalAvesAtivas',
             'mortesNoPeriodo',
             'ovosPostosNoPeriodo',
+            'taxaEclosaoMediaGeral', // Novo KPI
             'labelsAvesPorTipo',
             'dadosAvesPorTipo',
             'labelsTendenciaEclosao',
@@ -161,11 +204,11 @@ class DashboardController extends Controller
             'labelsChocadeira',
             'totalOvosPorChocadeira',
             'totalEclodidosPorChocadeira',
-            'taxasEclosaoChocadeira',
-            'proximasEclosoes',
-            'proximosAcasalamentos',
+            'taxasEclosaoChocadeira', // Taxas percentuais por chocadeira
+            'incubacoesData', // Tabela de incubações ativas
+            'calendarEvents', // Eventos para o FullCalendar
             'alertas',
-            'dataInicio', // Passa as datas para a view para preencher o datepicker
+            'dataInicio',
             'dataFim'
         ));
     }

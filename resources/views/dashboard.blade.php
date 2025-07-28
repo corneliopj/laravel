@@ -5,6 +5,9 @@
 {{-- Inclui o partial head --}}
 @include('layouts.partials.head')
 
+{{-- Links CDN para FullCalendar --}}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+
 <div class="wrapper">
     {{-- Inclui o partial navbar --}}
     @include('layouts.partials.navbar')
@@ -129,13 +132,7 @@
                         <!-- small box -->
                         <div class="small-box bg-warning">
                             <div class="inner">
-                                {{-- A taxa de eclosão média é um cálculo que pode ser mais complexo de um único KPI,
-                                     se baseia em todas as incubações. Para simplificar, vou usar um valor fixo ou
-                                     remover se não tiver uma lógica clara no controller para isso.
-                                     Se $taxasEclosaoChocadeira[0] não existir, pode causar erro.
-                                     Melhor calcular a média aqui ou no controller.
-                                     Por enquanto, vou deixar como está, mas com um fallback para 0. --}}
-                                <h3>{{ number_format(collect($taxasEclosaoChocadeira)->avg() ?? 0, 2) }}<sup style="font-size: 20px">%</sup></h3>
+                                <h3>{{ number_format($taxaEclosaoMediaGeral, 2) }}<sup style="font-size: 20px">%</sup></h3>
                                 <p>Taxa de Eclosão Média</p>
                             </div>
                             <div class="icon">
@@ -217,12 +214,86 @@
                         </div>
                         <!-- /.card -->
 
-                        <!-- Próximas Eclosões e Acasalamentos (Visão de Calendário/Lista) -->
+                        <!-- TABLE: Incubações Ativas (Restaurada) -->
+                        <div class="card card-primary card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">Incubações Ativas</h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- /.card-header -->
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table m-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Lote</th>
+                                                <th>Tipo</th>
+                                                <th>Ovos</th>
+                                                <th>Progresso</th>
+                                                <th>Status</th>
+                                                <th>Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse ($incubacoesData as $incubacao)
+                                                <tr>
+                                                    <td><a href="{{ $incubacao['link_detalhes'] }}">{{ $incubacao['lote_nome'] }}</a></td>
+                                                    <td>{{ $incubacao['tipo_ave_nome'] }}</td>
+                                                    <td>{{ $incubacao['quantidade_ovos'] }}</td>
+                                                    <td>
+                                                        <div class="progress progress-sm">
+                                                            <div class="progress-bar bg-primary" style="width: {{ $incubacao['progress_percentage'] }}%"></div>
+                                                        </div>
+                                                        <small class="text-muted">
+                                                            {{ $incubacao['progress_percentage'] }}% Concluído
+                                                        </small>
+                                                    </td>
+                                                    <td>
+                                                        @if ($incubacao['status'] == 'Em andamento')
+                                                            <span class="badge badge-info">{{ $incubacao['status'] }}</span>
+                                                        @elseif ($incubacao['status'] == 'Finalizando')
+                                                            <span class="badge badge-warning">{{ $incubacao['status'] }}</span>
+                                                        @elseif ($incubacao['status'] == 'Concluído')
+                                                            <span class="badge badge-success">{{ $incubacao['status'] }}</span>
+                                                        @elseif ($incubacao['status'] == 'Atrasado')
+                                                            <span class="badge badge-danger">{{ $incubacao['status'] }}</span>
+                                                        @else
+                                                            <span class="badge badge-secondary">{{ $incubacao['status'] }}</span>
+                                                        @endif
+                                                    </td>
+                                                    <td>
+                                                        <a href="{{ $incubacao['link_detalhes'] }}" class="btn btn-info btn-sm"><i class="fas fa-eye"></i></a>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="6" class="text-center">Nenhuma incubação ativa encontrada.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <!-- /.table-responsive -->
+                            </div>
+                            <!-- /.card-body -->
+                            <div class="card-footer clearfix">
+                                <a href="{{ route('incubacoes.create') }}" class="btn btn-sm btn-info float-left">Nova Incubação</a>
+                                <a href="{{ route('incubacoes.index') }}" class="btn btn-sm btn-secondary float-right">Ver Todas</a>
+                            </div>
+                            <!-- /.card-footer -->
+                        </div>
+                        <!-- /.card -->
+
+                        <!-- Calendário de Eventos (FullCalendar) -->
                         <div class="card">
                             <div class="card-header">
                                 <h3 class="card-title">
                                     <i class="fas fa-calendar-alt mr-1"></i>
-                                    Próximos Eventos (30 Dias)
+                                    Calendário de Eventos
                                 </h3>
                                 <div class="card-tools">
                                     <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -230,45 +301,12 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="card-body p-0">
-                                <div class="table-responsive">
-                                    <table class="table table-striped">
-                                        <thead>
-                                            <tr>
-                                                <th>Data</th>
-                                                <th>Evento</th>
-                                                <th>Detalhes</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($proximasEclosoes as $eclosao)
-                                                <tr>
-                                                    {{-- CORRIGIDO: Usando data_prevista_eclosao --}}
-                                                    <td>{{ $eclosao->data_prevista_eclosao->format('d/m') }}</td>
-                                                    <td><span class="badge badge-success">Eclosão</span></td>
-                                                    <td>Chocadeira: {{ $eclosao->chocadeira }} ({{ $eclosao->quantidade_ovos }} ovos)</td>
-                                                </tr>
-                                            @empty
-                                            @endforelse
-                                            @forelse ($proximosAcasalamentos as $acasalamento)
-                                                <tr>
-                                                    <td>{{ Carbon\Carbon::parse($acasalamento->data_inicio)->format('d/m') }}</td>
-                                                    <td><span class="badge badge-primary">Acasalamento</span></td>
-                                                    <td>Macho ID: {{ $acasalamento->macho_id }}, Fêmea ID: {{ $acasalamento->femea_id }}</td>
-                                                </tr>
-                                            @empty
-                                            @endforelse
-                                            @if ($proximasEclosoes->isEmpty() && $proximosAcasalamentos->isEmpty())
-                                                <tr>
-                                                    <td colspan="3" class="text-center">Nenhum evento futuro nos próximos 30 dias.</td>
-                                                </tr>
-                                            @endif
-                                        </tbody>
-                                    </table>
-                                </div>
+                            <div class="card-body">
+                                <div id='calendar'></div>
                             </div>
                         </div>
                         <!-- /.card -->
+
                     </section>
                     <!-- /.Right col -->
                 </div>
@@ -278,11 +316,17 @@
         <!-- /.content -->
     </div>
     <!-- /.content-wrapper -->
-    @include('layouts.partials.scripts')
     {{-- Inclui o partial footer --}}
     @include('layouts.partials.footer')
 </div>
 <!-- ./wrapper -->
+
+{{-- Inclui o partial scripts (TODOS OS SCRIPTS GLOBAIS NA ORDEM CORRETA) --}}
+@include('layouts.partials.scripts')
+
+{{-- FullCalendar JS --}}
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/pt-br.js'></script> {{-- Localização para Português --}}
 
 {{-- Scripts específicos do Dashboard --}}
 <script>
@@ -404,7 +448,7 @@
             options: eclosionLineChartOptions
         });
 
-        // Gráfico de Desempenho por Chocadeira (Barras)
+        // Gráfico de Desempenho por Chocadeira (Barras com Linha de Taxa de Eclosão)
         var chocadeiraBarChartCanvas = $('#chocadeiraBarChart').get(0).getContext('2d');
         var chocadeiraBarChartData = {
             labels: {!! json_encode($labelsChocadeira) !!},
@@ -412,16 +456,18 @@
                 label: 'Ovos Colocados',
                 backgroundColor: 'rgba(0, 123, 255, 0.7)', // Azul
                 data: {!! json_encode($totalOvosPorChocadeira) !!},
+                yAxisID: 'y-axis-quantidade' // Eixo Y para quantidade
             }, {
                 label: 'Ovos Eclodidos',
                 backgroundColor: 'rgba(40, 167, 69, 0.7)', // Verde
                 data: {!! json_encode($totalEclodidosPorChocadeira) !!},
+                yAxisID: 'y-axis-quantidade' // Eixo Y para quantidade
             }, {
                 label: 'Taxa de Eclosão (%)',
                 backgroundColor: 'rgba(255, 193, 7, 0.7)', // Amarelo
                 data: {!! json_encode($taxasEclosaoChocadeira) !!},
                 type: 'line', // Adiciona como linha no gráfico de barras
-                yAxisID: 'y-axis-2', // Usa um segundo eixo Y
+                yAxisID: 'y-axis-percentual', // Usa um segundo eixo Y para percentual
                 borderColor: 'rgba(255, 193, 7, 1)',
                 fill: false,
                 pointRadius: 5,
@@ -434,10 +480,14 @@
             datasetFill: false,
             scales: {
                 yAxes: [{
+                    id: 'y-axis-quantidade',
+                    position: 'left', // Eixo Y para quantidade à esquerda
                     ticks: {
                         beginAtZero: true,
                         callback: function(value, index, values) {
-                            return value + ' ovos';
+                            if (Number.isInteger(value)) {
+                                return value + ' ovos';
+                            }
                         }
                     },
                     scaleLabel: {
@@ -445,8 +495,8 @@
                         labelString: 'Quantidade de Ovos'
                     }
                 }, {
-                    id: 'y-axis-2',
-                    position: 'right', // Coloca o segundo eixo Y à direita
+                    id: 'y-axis-percentual',
+                    position: 'right', // Eixo Y para percentual à direita
                     ticks: {
                         beginAtZero: true,
                         max: 100, // Taxa de eclosão vai de 0 a 100%
@@ -461,6 +511,10 @@
                         display: true,
                         labelString: 'Taxa de Eclosão (%)'
                     }
+                }],
+                xAxes: [{
+                    barPercentage: 0.7, // Largura das barras
+                    categoryPercentage: 0.8 // Espaçamento entre as categorias
                 }]
             },
             tooltips: {
@@ -470,7 +524,8 @@
                         if (label) {
                             label += ': ';
                         }
-                        if (data.datasets[tooltipItem.datasetIndex].type === 'line') {
+                        // Formata o tooltip com base no tipo de dado (ovos ou percentual)
+                        if (data.datasets[tooltipItem.datasetIndex].yAxisID === 'y-axis-percentual') {
                             label += tooltipItem.yLabel + '%';
                         } else {
                             label += tooltipItem.yLabel + ' ovos';
@@ -486,5 +541,40 @@
             options: chocadeiraBarChartOptions
         });
 
+        // Inicializa o FullCalendar
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth', // Visualização inicial: mês em grade
+            locale: 'pt-br', // Define o idioma para português do Brasil
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay'
+            },
+            buttonText: {
+                today: 'Hoje',
+                month: 'Mês',
+                week: 'Semana',
+                day: 'Dia'
+            },
+            events: {!! json_encode($calendarEvents) !!}, // Passa os eventos do controller
+            eventClick: function(info) {
+                // Ao clicar em um evento, redireciona para a URL do evento (se houver)
+                if (info.event.url) {
+                    window.open(info.event.url);
+                    info.jsEvent.preventDefault(); // Previne o comportamento padrão do link
+                }
+            },
+            eventDidMount: function(info) {
+                // Adiciona tooltips aos eventos para mais detalhes
+                $(info.el).tooltip({
+                    title: info.event.title + ' em ' + moment(info.event.start).format('DD/MM/YYYY'),
+                    placement: 'top',
+                    trigger: 'hover',
+                    container: 'body'
+                });
+            }
+        });
+        calendar.render(); // Renderiza o calendário
     });
 </script>
