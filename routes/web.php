@@ -20,7 +20,7 @@ use App\Http\Controllers\Financeiro\VendaController;
 use App\Http\Controllers\Financeiro\ReservaController;
 use App\Http\Controllers\Financeiro\ContrachequeController; // NOVO: Importa o controlador de Contracheque
 use App\Http\Controllers\PlantelController; // Adicione esta linha
-
+use App\Http\Controllers\MovimentacaoPlantelController; // Adicione esta linha
 
 /*
 |--------------------------------------------------------------------------
@@ -133,4 +133,11 @@ Route::middleware(['auth'])->group(function () {
     });
     // Rotas para o Módulo Plantel
     Route::resource('plantel', PlantelController::class);
+
+    // Rotas para o Módulo MovimentacoesPlantel
+    // Usamos 'movimentacoes-plantel' no URL para evitar conflito com o nome da tabela
+    Route::resource('movimentacoes-plantel', MovimentacaoPlantelController::class);
+
+    // Rota aninhada para criar uma movimentação diretamente de um plantel
+    Route::get('plantel/{plantel}/movimentacoes/create', [MovimentacaoPlantelController::class, 'create'])->name('plantel.movimentacoes.create');
 });
