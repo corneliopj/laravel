@@ -25,7 +25,7 @@ class DashboardController extends Controller
     public function index(Request $request)
     {
         // 1. Quantidade Total de Aves Ativas (Individuais)
-        $totalAvesIndividuaisAtivas = Ave::where('ativo', 1)->count();
+        $totalAvesAtivas = Ave::where('ativo', 1)->count(); // Variável que faltou no compact
 
         // NOVO: 2. Quantidade Total de Aves em Plantéis Agrupados Ativos
         $totalAvesEmPlantelAtivas = 0;
@@ -36,8 +36,8 @@ class DashboardController extends Controller
             $totalAvesEmPlantelAtivas += $plantel->quantidade_atual; // Usa o acessor 'quantidade_atual' do modelo Plantel
         }
 
-        // NOVO: 3. KPI Total Geral de Aves (Soma de individuais e plantéis)
-        $totalGeralAves = $totalAvesIndividuaisAtivas + $totalAvesEmPlantelAtivas;
+        // NOVO: 3. KPI Total Geral de Aves (Suma de individuais e plantéis)
+        $totalGeralAves = $totalAvesAtivas + $totalAvesEmPlantelAtivas; // Usa $totalAvesAtivas aqui
 
 
         // 4. Mortes nos Últimos 30 Dias
@@ -300,7 +300,7 @@ class DashboardController extends Controller
         $dadosDesempenhoChocadeira = $this->getDadosDesempenhoChocadeira();
 
         return view('dashboard', compact(
-            'totalAvesAtivas', // Aves individuais ativas (mantido para referência, mas o KPI principal será totalGeralAves)
+            'totalAvesAtivas', // AGORA INCLUÍDO NO COMPACT
             'totalGeralAves', // NOVO: Total geral de aves (individuais + plantéis)
             'mortesUltimos30Dias',
             'labelsAvesPorTipo',
