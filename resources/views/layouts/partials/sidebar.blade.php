@@ -67,6 +67,29 @@
                                 <p>Listar Aves</p>
                             </a>
                         </li>
+                         <li class="nav-item {{ Request::routeIs('plantel.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::routeIs('plantel.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-boxes"></i> {{-- Ícone para Plantel --}}
+                        <p>
+                            Plantéis
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('plantel.index') }}" class="nav-link {{ Request::routeIs('plantel.index') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Listar Plantéis</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('plantel.create') }}" class="nav-link {{ Request::routeIs('plantel.create') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Novo Plantel</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                         <li class="nav-item">
                             <a href="{{ route('tipos_aves.index') }}" class="nav-link {{ Request::routeIs('tipos_aves.*') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-th-list"></i> {{-- Ícone para Tipos de Aves --}}
