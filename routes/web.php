@@ -19,6 +19,7 @@ use App\Http\Controllers\Financeiro\TransacaoRecorrenteController;
 use App\Http\Controllers\Financeiro\VendaController;
 use App\Http\Controllers\Financeiro\ReservaController;
 use App\Http\Controllers\Financeiro\ContrachequeController; // NOVO: Importa o controlador de Contracheque
+use App\Http\Controllers\PlantelController; // Adicione esta linha
 
 
 /*
@@ -130,4 +131,6 @@ Route::middleware(['auth'])->group(function () {
         Route::post('contracheque', [ContrachequeController::class, 'store'])->name('contracheque.store');
         Route::delete('contracheque/{contracheque}', [ContrachequeController::class, 'destroy'])->name('contracheque.destroy');
     });
+    // Rotas para o Módulo Plantel
+    Route::resource('plantel', PlantelController::class);
 });
