@@ -131,6 +131,72 @@
                                     </table>
                                 </div>
                             </div>
+                      {{-- ... (seu código existente no plantel/show.blade.php) --}}
+
+                            </div>
+                            <!-- /.card-body -->
+                            <div class="card-footer">
+                                <a href="{{ route('plantel.edit', $plantel->id) }}" class="btn btn-warning">Editar Plantel</a>
+                                <a href="{{ route('plantel.index') }}" class="btn btn-secondary">Voltar à Lista</a>
+                                {{-- NOVO: Botão para adicionar movimentação --}}
+                                <a href="{{ route('plantel.movimentacoes.create', ['plantel' => $plantel->id]) }}" class="btn btn-success float-right">
+                                    <i class="fas fa-plus"></i> Adicionar Movimentação
+                                </a>
+                            </div>
+                        </div>
+                        <!-- /.card -->
+
+                        {{-- NOVO: Card para listar movimentações específicas do plantel --}}
+                        <div class="card card-info mt-4">
+                            <div class="card-header">
+                                <h3 class="card-title">Histórico de Movimentações</h3>
+                                <div class="card-tools">
+                                    <a href="{{ route('movimentacoes-plantel.index', ['plantel_id' => $plantel->id]) }}" class="btn btn-tool btn-sm">
+                                        <i class="fas fa-list"></i> Ver Todas
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>ID</th>
+                                                <th>Tipo</th>
+                                                <th>Quantidade</th>
+                                                <th>Data</th>
+                                                <th>Observações</th>
+                                                <th>Criado em</th>
+                                                <th style="width: 100px">Ações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @forelse ($plantel->movimentacoes->sortByDesc('data_movimentacao') as $movimentacao)
+                                                <tr>
+                                                    <td>{{ $movimentacao->id }}</td>
+                                                    <td>{{ ucfirst(str_replace('_', ' ', $movimentacao->tipo_movimentacao)) }}</td>
+                                                    <td>{{ $movimentacao->quantidade }}</td>
+                                                    <td>{{ $movimentacao->data_movimentacao->format('d/m/Y') }}</td>
+                                                    <td>{{ $movimentacao->observacoes ?? 'N/A' }}</td>
+                                                    <td>{{ $movimentacao->created_at->format('d/m/Y H:i:s') }}</td>
+                                                    <td>
+                                                        <a href="{{ route('movimentacoes-plantel.show', $movimentacao->id) }}" class="btn btn-info btn-sm" title="Ver Detalhes">
+                                                            <i class="fas fa-eye"></i>
+                                                        </a>
+                                                        <a href="{{ route('movimentacoes-plantel.edit', $movimentacao->id) }}" class="btn btn-warning btn-sm" title="Editar">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="7" class="text-center">Nenhuma movimentação para este plantel.</td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                         <!-- /.card -->
                     </div>
