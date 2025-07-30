@@ -2,17 +2,14 @@
     $pageTitle = 'Editar Incubação';
 @endphp
 
-{{-- Inclui o partial head --}}
 @include('layouts.partials.head')
 
 <div class="wrapper">
-    {{-- Inclui o partial navbar --}}
     @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
     @include('layouts.partials.sidebar')
 
     <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper">
+    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
         <!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
@@ -22,7 +19,7 @@
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Dashboard</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('incubacoes.index') }}">Incubações</a></li>
                             <li class="breadcrumb-item active">Editar</li>
                         </ol>
@@ -35,171 +32,121 @@
         <section class="content">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-md-12">
-                        <div class="card card-primary">
+                    <div class="col-md-8 offset-md-2">
+                        <div class="card card-warning">
                             <div class="card-header">
-                                <h3 class="card-title">Formulário de Edição de Incubação</h3>
+                                <h3 class="card-title">Dados da Incubação</h3>
                             </div>
                             <!-- /.card-header -->
+                            <!-- form start -->
                             <form action="{{ route('incubacoes.update', $incubacao->id) }}" method="POST">
                                 @csrf
                                 @method('PUT')
                                 <div class="card-body">
-                                    <div class="row">
-                                        <div class="form-group col-md-6">
-                                            <label for="lote_ovos_id">Lote de Ovos</label>
-                                            <select class="form-control @error('lote_ovos_id') is-invalid @enderror" id="lote_ovos_id" name="lote_ovos_id" required>
-                                                <option value="">Selecione um Lote</option>
-                                                @foreach ($lotes as $lote)
-                                                    <option value="{{ $lote->id }}" {{ old('lote_ovos_id', $incubacao->lote_ovos_id) == $lote->id ? 'selected' : '' }}>
-                                                        {{ $lote->identificacao_lote }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('lote_ovos_id')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group col-md-6">
-                                            <label for="tipo_ave_id">Tipo de Ave</label>
-                                            <select class="form-control @error('tipo_ave_id') is-invalid @enderror" id="tipo_ave_id" name="tipo_ave_id" required>
-                                                <option value="">Selecione um Tipo de Ave</option>
-                                                @foreach ($tiposAves as $tipoAve)
-                                                    <option value="{{ $tipoAve->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipoAve->id ? 'selected' : '' }}>
-                                                        {{ $tipoAve->nome }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('tipo_ave_id')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="form-group col-md-6">
-                                            <label for="data_entrada_incubadora">Data de Entrada na Incubadora</label>
-                                            <input type="date" class="form-control @error('data_entrada_incubadora') is-invalid @enderror" id="data_entrada_incubadora" name="data_entrada_incubadora" value="{{ old('data_entrada_incubadora', $incubacao->data_entrada_incubadora->format('Y-m-d')) }}" required>
-                                            @error('data_entrada_incubadora')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group col-md-6">
-                                            <label for="quantidade_ovos">Quantidade de Ovos</label>
-                                            <input type="number" class="form-control @error('quantidade_ovos') is-invalid @enderror" id="quantidade_ovos" name="quantidade_ovos" value="{{ old('quantidade_ovos', $incubacao->quantidade_ovos) }}" min="1" required>
-                                            @error('quantidade_ovos')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="form-group col-md-6">
-                                            <label for="chocadeira">Chocadeira</label>
-                                            <select class="form-control @error('chocadeira') is-invalid @enderror" id="chocadeira" name="chocadeira">
-                                                <option value="">Selecione a Chocadeira</option>
-                                                @foreach ($chocadeiras as $chocadeira)
-                                                    <option value="{{ $chocadeira }}" {{ old('chocadeira', $incubacao->chocadeira) == $chocadeira ? 'selected' : '' }}>
-                                                        {{ $chocadeira }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('chocadeira')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group col-md-6">
-                                            <label for="postura_ovo_id">Postura de Ovo Associada (Opcional)</label>
-                                            <select class="form-control @error('postura_ovo_id') is-invalid @enderror" id="postura_ovo_id" name="postura_ovo_id">
-                                                <option value="">Nenhuma</option>
-                                                @foreach ($posturasOvos as $posturaOvo)
-                                                    <option value="{{ $posturaOvo->id }}" {{ old('postura_ovo_id', $incubacao->postura_ovo_id) == $posturaOvo->id ? 'selected' : '' }}>
-                                                        ID: {{ $posturaOvo->id }} - Início: {{ \Carbon\Carbon::parse($posturaOvo->data_inicio_postura)->format('d/m/Y') }} - Qtd: {{ $posturaOvo->quantidade_ovos }}
-                                                        @if ($posturaOvo->acasalamento && $posturaOvo->acasalamento->macho && $posturaOvo->acasalamento->femea)
-                                                            - Macho: {{ $posturaOvo->acasalamento->macho->matricula }} / Fêmea: {{ $posturaOvo->acasalamento->femea->matricula }}
-                                                        @endif
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('postura_ovo_id')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="row">
-                                        <div class="form-group col-md-4">
-                                            <label for="quantidade_inferteis">Ovos Inférteis</label>
-                                            <input type="number" class="form-control @error('quantidade_inferteis') is-invalid @enderror" id="quantidade_inferteis" name="quantidade_inferteis" value="{{ old('quantidade_inferteis', $incubacao->quantidade_inferteis) }}" min="0">
-                                            @error('quantidade_inferteis')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group col-md-4">
-                                            <label for="quantidade_infectados">Ovos Infectados</label>
-                                            <input type="number" class="form-control @error('quantidade_infectados') is-invalid @enderror" id="quantidade_infectados" name="quantidade_infectados" value="{{ old('quantidade_infectados', $incubacao->quantidade_infectados) }}" min="0">
-                                            @error('quantidade_infectados')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group col-md-4">
-                                            <label for="quantidade_mortos">Ovos Mortos</label>
-                                            <input type="number" class="form-control @error('quantidade_mortos') is-invalid @enderror" id="quantidade_mortos" name="quantidade_mortos" value="{{ old('quantidade_mortos', $incubacao->quantidade_mortos) }}" min="0">
-                                            @error('quantidade_mortos')
-                                                <span class="invalid-feedback" role="alert">
-                                                    <strong>{{ $message }}</strong>
-                                                </span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
                                     <div class="form-group">
-                                        <label for="quantidade_eclodidos">Quantidade de Ovos Eclodidos</label>
-                                        <input type="number" class="form-control @error('quantidade_eclodidos') is-invalid @enderror" id="quantidade_eclodidos" name="quantidade_eclodidos" value="{{ old('quantidade_eclodidos', $incubacao->quantidade_eclodidos) }}" min="0" max="{{ $incubacao->quantidade_ovos }}" required>
-                                        @error('quantidade_eclodidos')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
+                                        <label for="lote_id">Lote de Ovos</label>
+                                        <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror" required>
+                                            <option value="">Selecione o Lote</option>
+                                            @foreach($lotes as $lote)
+                                                <option value="{{ $lote->id }}" {{ old('lote_id', $incubacao->lote_id) == $lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('lote_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
-
+                                    <div class="form-group">
+                                        <label for="tipo_ave_id">Tipo de Ave (Ovos)</label>
+                                        <select name="tipo_ave_id" id="tipo_ave_id" class="form-control @error('tipo_ave_id') is-invalid @enderror" required>
+                                            <option value="">Selecione o Tipo de Ave</option>
+                                            @foreach($tiposAves as $tipo)
+                                                <option value="{{ $tipo->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('tipo_ave_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="chocadeira">Chocadeira</label>
+                                        <input type="text" name="chocadeira" id="chocadeira" class="form-control @error('chocadeira') is-invalid @enderror" value="{{ old('chocadeira', $incubacao->chocadeira) }}" placeholder="Nome ou ID da chocadeira" required>
+                                        @error('chocadeira')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantidade_ovos">Quantidade de Ovos</label>
+                                        <input type="number" name="quantidade_ovos" id="quantidade_ovos" class="form-control @error('quantidade_ovos') is-invalid @enderror" value="{{ old('quantidade_ovos', $incubacao->quantidade_ovos) }}" min="1" required>
+                                        @error('quantidade_ovos')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="data_entrada_incubadora">Data de Entrada na Incubadora</label>
+                                        <input type="date" name="data_entrada_incubadora" id="data_entrada_incubadora" class="form-control @error('data_entrada_incubadora') is-invalid @enderror" value="{{ old('data_entrada_incubadora', $incubacao->data_entrada_incubadora->format('Y-m-d')) }}" required>
+                                        @error('data_entrada_incubadora')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="data_prevista_eclosao">Data Prevista de Eclosão</label>
+                                        <input type="date" name="data_prevista_eclosao" id="data_prevista_eclosao" class="form-control @error('data_prevista_eclosao') is-invalid @enderror" value="{{ old('data_prevista_eclosao', $incubacao->data_prevista_eclosao->format('Y-m-d')) }}" required>
+                                        @error('data_prevista_eclosao')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <hr>
+                                    <h5>Resultados da Incubação (Preencher após a eclosão)</h5>
+                                    <div class="form-group">
+                                        <label for="quantidade_eclodidos">Quantidade de Eclodidos</label>
+                                        <input type="number" name="quantidade_eclodidos" id="quantidade_eclodidos" class="form-control @error('quantidade_eclodidos') is-invalid @enderror" value="{{ old('quantidade_eclodidos', $incubacao->quantidade_eclodidos) }}" min="0">
+                                        @error('quantidade_eclodidos')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantidade_inferteis">Quantidade de Inférteis</label>
+                                        <input type="number" name="quantidade_inferteis" id="quantidade_inferteis" class="form-control @error('quantidade_inferteis') is-invalid @enderror" value="{{ old('quantidade_inferteis', $incubacao->quantidade_inferteis) }}" min="0">
+                                        @error('quantidade_inferteis')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantidade_mortos">Quantidade de Mortos (no ovo)</label>
+                                        <input type="number" name="quantidade_mortos" id="quantidade_mortos" class="form-control @error('quantidade_mortos') is-invalid @enderror" value="{{ old('quantidade_mortos', $incubacao->quantidade_mortos) }}" min="0">
+                                        @error('quantidade_mortos')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="quantidade_infectados">Quantidade de Infectados</label>
+                                        <input type="number" name="quantidade_infectados" id="quantidade_infectados" class="form-control @error('quantidade_infectados') is-invalid @enderror" value="{{ old('quantidade_infectados', $incubacao->quantidade_infectados) }}" min="0">
+                                        @error('quantidade_infectados')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
                                     <div class="form-group">
                                         <label for="observacoes">Observações</label>
-                                        <textarea class="form-control @error('observacoes') is-invalid @enderror" id="observacoes" name="observacoes" rows="3">{{ old('observacoes', $incubacao->observacoes) }}</textarea>
+                                        <textarea name="observacoes" id="observacoes" class="form-control @error('observacoes') is-invalid @enderror" rows="3" placeholder="Notas sobre a incubação...">{{ old('observacoes', $incubacao->observacoes) }}</textarea>
                                         @error('observacoes')
-                                            <span class="invalid-feedback" role="alert">
-                                                <strong>{{ $message }}</strong>
-                                            </span>
+                                            <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
-
                                     <div class="form-group">
-                                        <div class="custom-control custom-switch">
-                                            <input type="checkbox" class="custom-control-input" id="ativo" name="ativo" value="1" {{ old('ativo', $incubacao->ativo) ? 'checked' : '' }}>
-                                            <label class="custom-control-label" for="ativo">Incubação Ativa</label>
+                                        <label for="ativo">Incubação Ativa</label>
+                                        <div class="form-check">
+                                            <input type="checkbox" name="ativo" id="ativo" class="form-check-input" value="1" {{ old('ativo', $incubacao->ativo) ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="ativo">Marque se a incubação ainda está em andamento.</label>
                                         </div>
+                                        @error('ativo')
+                                            <div class="invalid-feedback d-block">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                                 <!-- /.card-body -->
                                 <div class="card-footer">
-                                    <button type="submit" class="btn btn-primary">Atualizar</button>
-                                    <a href="{{ route('incubacoes.index') }}" class="btn btn-secondary">Cancelar</a>
+                                    <button type="submit" class="btn btn-primary">Atualizar Incubação</button>
+                                    <a href="{{ route('incubacoes.show', $incubacao->id) }}" class="btn btn-secondary">Cancelar</a>
                                 </div>
                             </form>
                         </div>
@@ -211,8 +158,7 @@
         <!-- /.content -->
     </div>
     <!-- /.content-wrapper -->
-
-    {{-- Inclui o partial footer --}}
+    @include('layouts.partials.scripts')
     @include('layouts.partials.footer')
 </div>
 <!-- ./wrapper -->

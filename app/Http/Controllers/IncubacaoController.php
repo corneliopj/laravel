@@ -40,14 +40,15 @@ class IncubacaoController extends Controller
             });
         }
 
-        $incubações = $query->orderBy('ativo', 'desc')
+        $incubacoes = $query->orderBy('ativo', 'desc')
                             ->orderBy('data_entrada_incubadora', 'desc')
                             ->paginate(15);
 
         $tiposAve = TipoAve::orderBy('nome')->get();
+        $lotes = Lote::orderBy('identificacao_lote')->get(); // Adicionando lotes para filtros, se necessário
 
-        // Variável passada para a view com cedilha
-        return view('incubacoes.listar', compact('incubações', 'tiposAve', 'request'));
+        // CORREÇÃO: O método index deve retornar a view 'incubacoes.index'
+        return view('incubacoes.index', compact('incubacoes', 'tiposAve', 'lotes', 'request'));
     }
 
     /**
@@ -61,7 +62,8 @@ class IncubacaoController extends Controller
         $lotes = Lote::orderBy('identificacao_lote')->get();
         $posturaOvos = PosturaOvo::all();
 
-        return view('incubacao.create', compact('tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
+        // CORREÇÃO: Alterado para 'incubacoes.create' para consistência
+        return view('incubacoes.create', compact('tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
     }
 
     /**
@@ -70,7 +72,7 @@ class IncubacaoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tipo_ave_id' => 'required|exists:tipos_ave,id',
+            'tipo_ave_id' => 'required|exists:tipos_aves,id', // Corrigido para 'tipos_aves'
             'data_entrada_incubadora' => 'required|date|before_or_equal:today',
             'quantidade_ovos' => 'required|integer|min:1',
             'observacoes' => 'nullable|string|max:1000',
@@ -113,7 +115,7 @@ class IncubacaoController extends Controller
     public function show(string $id)
     {
         $incubacao = Incubacao::with(['tipoAve', 'matriz', 'reprodutor', 'lote', 'posturaOvo'])->findOrFail($id);
-        return view('incubacao.show', compact('incubacao'));
+        return view('incubacoes.show', compact('incubacao'));
     }
 
     /**
@@ -128,7 +130,8 @@ class IncubacaoController extends Controller
         $lotes = Lote::orderBy('identificacao_lote')->get();
         $posturaOvos = PosturaOvo::all();
 
-        return view('incubacao.edit', compact('incubacao', 'tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
+        // Esta view já estava correta, apenas confirmando as variáveis passadas
+        return view('incubacoes.edit', compact('incubacao', 'tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
     }
 
     /**
@@ -139,7 +142,7 @@ class IncubacaoController extends Controller
         $incubacao = Incubacao::findOrFail($id);
 
         $request->validate([
-            'tipo_ave_id' => 'required|exists:tipos_ave,id',
+            'tipo_ave_id' => 'required|exists:tipos_aves,id', // Corrigido para 'tipos_aves'
             'data_entrada_incubadora' => 'required|date|before_or_equal:today',
             'quantidade_ovos' => 'required|integer|min:1',
             'observacoes' => 'nullable|string|max:1000',
