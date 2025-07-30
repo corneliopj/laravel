@@ -194,7 +194,7 @@
 
             addItemBtn.addEventListener('click', function () {
                 const template = `
-                    @include('vendas.partials.item_row', [
+                    @include('financeiro.vendas.partials.item_row', [
                         'index' => 'ITEM_INDEX_PLACEHOLDER',
                         'item' => null,
                         'avesDisponiveis' => $avesDisponiveis,
