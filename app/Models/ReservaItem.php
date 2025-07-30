@@ -15,6 +15,7 @@ class ReservaItem extends Model
         'reserva_id',
         'descricao_item',
         'ave_id',
+        'plantel_id', // NOVO: Adicionado plantel_id
         'quantidade',
         'preco_unitario',
         'valor_total_item',
@@ -42,5 +43,14 @@ class ReservaItem extends Model
     public function ave()
     {
         return $this->belongsTo(Ave::class, 'ave_id');
+    }
+
+    /**
+     * NOVO: Define a relação com o plantel, se o item for de um plantel.
+     * Um item de reserva pode pertencer a um plantel (opcional).
+     */
+    public function plantel()
+    {
+        return $this->belongsTo(Plantel::class, 'plantel_id');
     }
 }
