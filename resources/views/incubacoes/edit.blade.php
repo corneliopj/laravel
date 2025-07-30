@@ -45,11 +45,15 @@
                                 <div class="card-body">
                                     <div class="form-group">
                                         <label for="lote_id">Lote de Ovos</label>
-                                        <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror" required>
-                                            {{-- CORREÇÃO AQUI: Seleciona a opção vazia se lote_id for nulo --}}
-                                            <option value="" {{ is_null(old('lote_id', $incubacao->lote_id)) ? 'selected' : '' }}>Selecione o Lote</option>
+                                        <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror"> {{-- Removido 'required' temporariamente para teste se o problema for null --}}
+                                            @php
+                                                // Prioriza o valor antigo (se houver erro de validação), senão usa o valor do banco de dados
+                                                $selectedLoteId = old('lote_id', $incubacao->lote_id);
+                                            @endphp
+                                            {{-- Usa empty() para verificar se é null, 0, ou string vazia --}}
+                                            <option value="" {{ empty($selectedLoteId) ? 'selected' : '' }}>Selecione o Lote</option>
                                             @foreach($lotes as $lote)
-                                                <option value="{{ $lote->id }}" {{ old('lote_id', $incubacao->lote_id) == $lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
+                                                <option value="{{ $lote->id }}" {{ $selectedLoteId == $lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
                                             @endforeach
                                         </select>
                                         @error('lote_id')
