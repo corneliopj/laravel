@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
-use App\Models\Financeiro\Venda;
+use App\Models\Venda;
 use App\Models\VendaItem; // Certifique-se de que VendaItem está importado
 use App\Models\Ave;
 use App\Models\Plantel;
