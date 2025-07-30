@@ -45,15 +45,16 @@
                                 <div class="card-body">
                                     <div class="form-group">
                                         <label for="lote_id">Lote de Ovos</label>
-                                        <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror"> {{-- Removido 'required' temporariamente para teste se o problema for null --}}
+                                        {{-- Removido 'required' pois lote_ovos_id é NULLABLE no DB --}}
+                                        <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror">
                                             @php
-                                                // Prioriza o valor antigo (se houver erro de validação), senão usa o valor do banco de dados
-                                                $selectedLoteId = old('lote_id', $incubacao->lote_id);
+                                                // CORREÇÃO AQUI: Usar lote_ovos_id em vez de lote_id
+                                                $selectedLoteId = old('lote_id', $incubacao->lote_ovos_id);
                                             @endphp
-                                            {{-- Usa empty() para verificar se é null, 0, ou string vazia --}}
-                                            <option value="" {{ empty($selectedLoteId) ? 'selected' : '' }}>Selecione o Lote</option>
+                                            {{-- Verifica se o valor é nulo ou vazio para selecionar a opção "Selecione o Lote" --}}
+                                            <option value="" {{ is_null($selectedLoteId) || $selectedLoteId === '' ? 'selected' : '' }}>Selecione o Lote</option>
                                             @foreach($lotes as $lote)
-                                                <option value="{{ $lote->id }}" {{ $selectedLoteId == $lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
+                                                <option value="{{ $lote->id }}" {{ (string)$selectedLoteId === (string)$lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
                                             @endforeach
                                         </select>
                                         @error('lote_id')
@@ -63,9 +64,12 @@
                                     <div class="form-group">
                                         <label for="tipo_ave_id">Tipo de Ave (Ovos)</label>
                                         <select name="tipo_ave_id" id="tipo_ave_id" class="form-control @error('tipo_ave_id') is-invalid @enderror" required>
-                                            <option value="">Selecione o Tipo de Ave</option>
+                                            @php
+                                                $selectedTipoAveId = old('tipo_ave_id', $incubacao->tipo_ave_id);
+                                            @endphp
+                                            <option value="" {{ is_null($selectedTipoAveId) || $selectedTipoAveId === '' ? 'selected' : '' }}>Selecione o Tipo de Ave</option>
                                             @foreach($tiposAve as $tipo)
-                                                <option value="{{ $tipo->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
+                                                <option value="{{ $tipo->id }}" {{ (string)$selectedTipoAveId === (string)$tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
                                             @endforeach
                                         </select>
                                         @error('tipo_ave_id')
