@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
-use App\Models\Venda;
-use App\Models\VendaItem; // Certifique-se de que VendaItem está importado
+use App\Models\Venda; // CORREÇÃO AQUI: Removido 'Financeiro\' do namespace do modelo Venda
+use App\Models\VendaItem;
 use App\Models\Ave;
 use App\Models\Plantel;
 use App\Models\MovimentacaoPlantel;
@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\Rule; // Para validação de status se necessário
+use Illuminate\Validation\Rule;
 
 class VendaController extends Controller
 {
@@ -166,7 +166,7 @@ class VendaController extends Controller
     /**
      * Exibe os detalhes de um registro de venda.
      *
-     * @param  \App\Models\Financeiro\Venda  $venda
+     * @param  \App\Models\Venda  $venda // Ajustado para o namespace correto
      * @return \Illuminate\View\View
      */
     public function show(Venda $venda)
@@ -178,7 +178,7 @@ class VendaController extends Controller
     /**
      * Mostra o formulário para editar um registro de venda existente.
      *
-     * @param  \App\Models\Financeiro\Venda  $venda
+     * @param  \App\Models\Venda  $venda // Ajustado para o namespace correto
      * @return \Illuminate\View\View
      */
     public function edit(Venda $venda)
@@ -190,11 +190,6 @@ class VendaController extends Controller
         // Plantéis ativos para seleção nos itens
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        // Para o formulário de edição, precisamos das aves/plantéis que já estão na venda
-        // e das que estão disponíveis (não vendidas/reservadas em outras transações)
-        // Isso é complexo, então vamos simplificar: todas as aves ativas e plantéis ativos
-        // estarão disponíveis para seleção, e a validação de estoque/status ocorrerá no update.
-
         return view('vendas.edit', compact('venda', 'avesDisponiveis', 'plantelOptions'));
     }
 
@@ -202,7 +197,7 @@ class VendaController extends Controller
      * Atualiza um registro de venda existente no banco de dados.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Financeiro\Venda  $venda
+     * @param  \App\Models\Venda  $venda // Ajustado para o namespace correto
      * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, Venda $venda)
@@ -227,14 +222,14 @@ class VendaController extends Controller
                 if ($oldItem->ave_id) {
                     $ave = Ave::find($oldItem->ave_id);
                     if ($ave) {
-                        $ave->ativo = true; // Reativa a ave
-                        $ave->vendavel = true; // Marca como vendável novamente
+                        $ave->ativo = true;
+                        $ave->vendavel = true;
                         $ave->save();
                     }
                 } elseif ($oldItem->plantel_id) {
                     MovimentacaoPlantel::create([
                         'plantel_id' => $oldItem->plantel_id,
-                        'tipo_movimentacao' => 'entrada', // Reverte a saída anterior
+                        'tipo_movimentacao' => 'entrada',
                         'quantidade' => $oldItem->quantidade,
                         'data_movimentacao' => Carbon::now(),
                         'observacoes' => 'Ajuste de reversão de venda (ID Venda: ' . $venda->id . ') devido a edição.',
@@ -331,7 +326,7 @@ class VendaController extends Controller
     /**
      * Remove um registro de venda do banco de dados.
      *
-     * @param  \App\Models\Financeiro\Venda  $venda
+     * @param  \App\Models\Venda  $venda // Ajustado para o namespace correto
      * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(Venda $venda)
@@ -350,7 +345,7 @@ class VendaController extends Controller
                 } elseif ($item->plantel_id) {
                     MovimentacaoPlantel::create([
                         'plantel_id' => $item->plantel_id,
-                        'tipo_movimentacao' => 'entrada', // Reverte a saída
+                        'tipo_movimentacao' => 'entrada',
                         'quantidade' => $item->quantidade,
                         'data_movimentacao' => Carbon::now(),
                         'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido à exclusão do registro.',
