@@ -1,7 +1,6 @@
 {{-- resources/views/financeiro/vendas/partials/item_row.blade.php --}}
 <div class="card card-outline card-secondary item-row mb-3">
     <div class="card-header">
-        {{-- CORREÇÃO AQUI: Cast para inteiro antes da soma --}}
         <h3 class="card-title">Item #{{ (int)$index + 1 }}</h3>
         <div class="card-tools">
             <button type="button" class="btn btn-tool remove-item-btn">
@@ -13,15 +12,15 @@
         <div class="form-group">
             <label>Tipo de Item</label><br>
             <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_individual_{{ $index }}" value="individual" {{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'individual' ? 'checked' : '' }}>
+                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_individual_{{ $index }}" value="individual" {{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'individual' ? 'checked' : '' }}>
                 <label class="form-check-label" for="tipo_individual_{{ $index }}">Ave Individual</label>
             </div>
             <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_plantel_{{ $index }}" value="plantel" {{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'plantel' ? 'checked' : '' }}>
+                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_plantel_{{ $index }}" value="plantel" {{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'plantel' ? 'checked' : '' }}>
                 <label class="form-check-label" for="tipo_plantel_{{ $index }}">Plantel Agrupado</label>
             </div>
             <div class="form-check form-check-inline">
-                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_generico_{{ $index }}" value="generico" {{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'generico' ? 'checked' : '' }}>
+                <input class="form-check-input" type="radio" name="items[{{ $index }}][tipo_item]" id="tipo_generico_{{ $index }}" value="generico" {{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'generico' ? 'checked' : '' }}>
                 <label class="form-check-label" for="tipo_generico_{{ $index }}">Genérico</label>
             </div>
             @error('items.' . $index . '.tipo_item')
@@ -29,7 +28,7 @@
             @enderror
         </div>
 
-        <div id="div_ave_id_{{ $index }}" class="form-group" style="{{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'individual' ? '' : 'display:none;' }}">
+        <div id="div_ave_id_{{ $index }}" class="form-group" style="{{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'individual' ? '' : 'display:none;' }}">
             <label for="items_{{ $index }}_ave_id">Ave Individual</label>
             <select name="items[{{ $index }}][ave_id]" id="items_{{ $index }}_ave_id" class="form-control @error('items.' . $index . '.ave_id') is-invalid @enderror">
                 <option value="">Selecione uma Ave</option>
@@ -42,7 +41,7 @@
             @enderror
         </div>
 
-        <div id="div_plantel_id_{{ $index }}" style="{{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'plantel' ? '' : 'display:none;' }}">
+        <div id="div_plantel_id_{{ $index }}" style="{{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'plantel' ? '' : 'display:none;' }}">
             <div class="form-group">
                 <label for="items_{{ $index }}_plantel_id">Plantel Agrupado</label>
                 <select name="items[{{ $index }}][plantel_id]" id="items_{{ $index }}_plantel_id" class="form-control @error('items.' . $index . '.plantel_id') is-invalid @enderror">
@@ -67,7 +66,7 @@
 
         <div class="form-group">
             <label for="items_{{ $index }}_quantidade">Quantidade</label>
-            <input type="number" name="items[{{ $index }}][quantidade]" id="items_{{ $index }}_quantidade" class="form-control @error('items.' . $index . '.quantidade') is-invalid @enderror" value="{{ old('items.' . $index . '.quantidade', $item->quantidade ?? 1) }}" min="1" required {{ (old('items.' . $index . '.tipo_item', $item->ave_id ? 'individual' : ($item->plantel_id ? 'plantel' : 'generico'))) == 'individual' ? 'readonly' : '' }}>
+            <input type="number" name="items[{{ $index }}][quantidade]" id="items_{{ $index }}_quantidade" class="form-control @error('items.' . $index . '.quantidade') is-invalid @enderror" value="{{ old('items.' . $index . '.quantidade', $item->quantidade ?? 1) }}" min="1" required {{ (old('items.' . $index . '.tipo_item', ($item->ave_id ?? null) ? 'individual' : (($item->plantel_id ?? null) ? 'plantel' : 'generico'))) == 'individual' ? 'readonly' : '' }}>
             @error('items.' . $index . '.quantidade')
                 <div class="invalid-feedback">{{ $message }}</div>
             @enderror
