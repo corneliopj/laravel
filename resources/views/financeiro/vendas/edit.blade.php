@@ -132,7 +132,8 @@
                                                 ])
                                             @endforeach
                                         @else
-                                            @foreach ($venda->items as $index => $item)
+                                            {{-- GARANTE QUE $venda->items É UMA COLEÇÃO E NÃO NULL --}}
+                                            @foreach ($venda->items ?? collect() as $index => $item)
                                                 @include('financeiro.vendas.partials.item_row', [
                                                     'index' => $index,
                                                     'item' => $item,
@@ -194,7 +195,8 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            let itemIndex = {{ old('items') ? count(old('items')) : $venda->items->count() }};
+            // CORREÇÃO AQUI: Garante que $venda->items é uma coleção, mesmo que vazia
+            let itemIndex = {{ old('items') ? count(old('items')) : ($venda->items->count() ?? 0) }};
             const itemsContainer = document.getElementById('items_container');
             const addItemBtn = document.getElementById('add_item_btn');
             const descontoInput = document.getElementById('desconto');

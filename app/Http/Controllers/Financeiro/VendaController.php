@@ -21,11 +21,10 @@ class VendaController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index(Request $request) // Adicionado Request para acessar filtros
+    public function index(Request $request)
     {
         $query = Venda::query()->with(['items.ave.tipoAve', 'items.plantel']);
 
-        // Lógica de filtro (copiada da sua index.blade.php original)
         if ($request->has('status') && $request->status != '') {
             $query->where('status', $request->status);
         }
@@ -38,14 +37,13 @@ class VendaController extends Controller
 
         $vendas = $query->orderBy('data_venda', 'desc')->paginate(15);
 
-        // NOVO: Definir opções de status para o filtro
         $statusOptions = [
             'concluida' => 'Concluída',
             'pendente' => 'Pendente',
             'cancelada' => 'Cancelada',
         ];
 
-        return view('financeiro.vendas.index', compact('vendas', 'statusOptions', 'request')); // Passar statusOptions e request para a view
+        return view('financeiro.vendas.index', compact('vendas', 'statusOptions', 'request'));
     }
 
     /**
@@ -208,6 +206,7 @@ class VendaController extends Controller
      */
     public function edit(Venda $venda)
     {
+        // Garante que os itens sejam carregados. Se não houver itens, será uma coleção vazia.
         $venda->load(['items.ave', 'items.plantel']);
 
         $avesDisponiveis = Ave::where('ativo', true)->orderBy('matricula')->get();
