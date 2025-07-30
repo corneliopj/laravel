@@ -198,12 +198,29 @@
                                 <p>Reservas</p>
                             </a>
                         </li>
+                         <li class="nav-item {{ Request::routeIs('financeiro.vendas.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::routeIs('financeiro.vendas.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-cash-register"></i> {{-- Ícone para Vendas --}}
+                        <p>
+                            Vendas
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
                         <li class="nav-item">
-                            <a href="{{ route('financeiro.vendas.index') }}" class="nav-link {{ Request::routeIs('financeiro.vendas.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-cash-register"></i> {{-- Ícone para Vendas --}}
-                                <p>Vendas</p>
+                            <a href="{{ route('financeiro.vendas.index') }}" class="nav-link {{ Request::routeIs('financeiro.vendas.index') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Listar Vendas</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('financeiro.vendas.create') }}" class="nav-link {{ Request::routeIs('financeiro.vendas.create') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Registrar Venda</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
                         <li class="nav-item">
                             <a href="{{ route('financeiro.categorias.index') }}" class="nav-link {{ Request::routeIs('financeiro.categorias.*') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-folder"></i> {{-- Ícone para Categorias Financeiras --}}

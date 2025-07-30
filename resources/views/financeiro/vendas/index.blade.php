@@ -19,7 +19,7 @@
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('financeiro.dashboard') }}">Home</a></li>
                             <li class="breadcrumb-item active">Vendas</li>
                         </ol>
                     </div>
@@ -36,7 +36,7 @@
                             <div class="card-header">
                                 <h3 class="card-title">Registros de Venda</h3>
                                 <div class="card-tools">
-                                    <a href="{{ route('vendas.create') }}" class="btn btn-primary btn-sm">
+                                    <a href="{{ route('financeiro.vendas.create') }}" class="btn btn-primary btn-sm">
                                         <i class="fas fa-plus"></i> Registrar Nova Venda
                                     </a>
                                 </div>
@@ -72,13 +72,13 @@
                                                         @endif
                                                     </td>
                                                     <td>
-                                                        <a href="{{ route('vendas.show', $venda->id) }}" class="btn btn-info btn-sm" title="Ver Detalhes">
+                                                        <a href="{{ route('financeiro.vendas.show', $venda->id) }}" class="btn btn-info btn-sm" title="Ver Detalhes">
                                                             <i class="fas fa-eye"></i>
                                                         </a>
-                                                        <a href="{{ route('vendas.edit', $venda->id) }}" class="btn btn-warning btn-sm" title="Editar">
+                                                        <a href="{{ route('financeiro.vendas.edit', $venda->id) }}" class="btn btn-warning btn-sm" title="Editar">
                                                             <i class="fas fa-edit"></i>
                                                         </a>
-                                                        <form action="{{ route('vendas.destroy', $venda->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir este registro de venda? Todas as aves/plantéis associados serão reativados/revertidos.');">
+                                                        <form action="{{ route('financeiro.vendas.destroy', $venda->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Tem certeza que deseja excluir este registro de venda? Todas as aves/plantéis associados serão reativados/revertidos.');">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-danger btn-sm" title="Excluir">
