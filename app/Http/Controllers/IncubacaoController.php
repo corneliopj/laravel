@@ -130,7 +130,7 @@ class IncubacaoController extends Controller
         $reprodutores = Ave::where('sexo', 'Macho')->where('ativo', true)->get();
         $lotes = Lote::orderBy('identificacao_lote')->get();
         $posturaOvos = PosturaOvo::all();
-
+dd($incubacao->lote_id, $incubacao->lote);
         // Passando 'tiposAve' (singular) para a view
         return view('incubacoes.edit', compact('incubacao', 'tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
     }
