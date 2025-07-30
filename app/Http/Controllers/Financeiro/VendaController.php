@@ -1,18 +1,18 @@
-    <?php
+<?php // NADA antes desta linha, nem mesmo um espaço ou quebra de linha
 
-    namespace App\Http\Controllers\Financeiro;
+namespace App\Http\Controllers\Financeiro; // NADA antes desta linha, exceto <?php
 
-    use App\Http\Controllers\Controller;
-    use App\Models\Venda;
-    use App\Models\VendaItem;
-    use App\Models\Ave;
-    use App\Models\Plantel;
-    use App\Models\MovimentacaoPlantel;
-    use Illuminate\Http\Request;
-    use Carbon\Carbon;
-    use Illuminate\Support\Facades\DB;
-    use Illuminate\Support\Facades\Log;
-    use Illuminate\Validation\Rule;
+use App\Http\Controllers\Controller;
+use App\Models\Venda;
+use App\Models\VendaItem;
+use App\Models\Ave;
+use App\Models\Plantel;
+use App\Models\MovimentacaoPlantel;
+use Illuminate\Http\Request;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
     class VendaController extends Controller
     {
