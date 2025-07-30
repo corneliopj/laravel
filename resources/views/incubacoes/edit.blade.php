@@ -46,7 +46,8 @@
                                     <div class="form-group">
                                         <label for="lote_id">Lote de Ovos</label>
                                         <select name="lote_id" id="lote_id" class="form-control @error('lote_id') is-invalid @enderror" required>
-                                            <option value="">Selecione o Lote</option>
+                                            {{-- CORREÇÃO AQUI: Seleciona a opção vazia se lote_id for nulo --}}
+                                            <option value="" {{ is_null(old('lote_id', $incubacao->lote_id)) ? 'selected' : '' }}>Selecione o Lote</option>
                                             @foreach($lotes as $lote)
                                                 <option value="{{ $lote->id }}" {{ old('lote_id', $incubacao->lote_id) == $lote->id ? 'selected' : '' }}>{{ $lote->identificacao_lote }}</option>
                                             @endforeach
@@ -59,7 +60,6 @@
                                         <label for="tipo_ave_id">Tipo de Ave (Ovos)</label>
                                         <select name="tipo_ave_id" id="tipo_ave_id" class="form-control @error('tipo_ave_id') is-invalid @enderror" required>
                                             <option value="">Selecione o Tipo de Ave</option>
-                                            {{-- CORREÇÃO AQUI: $tiposAves para $tiposAve --}}
                                             @foreach($tiposAve as $tipo)
                                                 <option value="{{ $tipo->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
                                             @endforeach
