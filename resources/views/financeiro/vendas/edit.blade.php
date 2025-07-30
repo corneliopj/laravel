@@ -20,7 +20,7 @@
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('financeiro.vendas.index') }}">Vendas</a></li>
                             <li class="breadcrumb-item active">Editar</li>
                         </ol>
                     </div>
@@ -39,7 +39,7 @@
                             </div>
                             <!-- /.card-header -->
                             <!-- form start -->
-                            <form action="{{ route('vendas.update', $venda->id) }}" method="POST">
+                            <form action="{{ route('financeiro.vendas.update', $venda->id) }}" method="POST">
                                 @csrf
                                 @method('PUT')
                                 <div class="card-body">
@@ -98,7 +98,7 @@
                                 <!-- /.card-body -->
                                 <div class="card-footer">
                                     <button type="submit" class="btn btn-primary">Atualizar Venda</button>
-                                    <a href="{{ route('vendas.show', $venda->id) }}" class="btn btn-secondary">Cancelar</a>
+                                    <a href="{{ route('financeiro.vendas.show', $venda->id) }}" class="btn btn-secondary">Cancelar</a>
                                 </div>
                             </form>
                         </div>
