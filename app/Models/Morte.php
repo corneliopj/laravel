@@ -9,27 +9,35 @@ class Morte extends Model
 {
     use HasFactory;
 
-    // Define o nome da tabela se ele não for o plural do nome do modelo (Laravel tenta adivinhar 'mortes' para 'Morte')
-    protected $table = 'mortes';
+    protected $table = 'mortes'; // Assegura o nome correto da tabela
 
-    // Define as colunas que podem ser preenchidas massivamente
     protected $fillable = [
-        'ave_id',
+        'ave_id', // Chave estrangeira para ave individual (pode ser nulo)
+        'plantel_id', // Chave estrangeira para plantel agrupado (pode ser nulo)
+        'quantidade_mortes_plantel', // Quantidade de aves mortas se for um registro de plantel
         'data_morte',
-        'causa',
+        'causa_morte',
         'observacoes',
     ];
 
-    // Define os tipos de dados para colunas específicas
     protected $casts = [
         'data_morte' => 'date',
+        'quantidade_mortes_plantel' => 'integer',
     ];
 
-    // Define as relações do modelo
-
-    // Relação com Ave (Uma morte pertence a uma ave)
+    /**
+     * Relacionamento: Uma morte pode pertencer a uma Ave individual.
+     */
     public function ave()
     {
-        return $this->belongsTo(Ave::class);
+        return $this->belongsTo(Ave::class, 'ave_id');
+    }
+
+    /**
+     * Relacionamento: Uma morte pode pertencer a um Plantel agrupado.
+     */
+    public function plantel()
+    {
+        return $this->belongsTo(Plantel::class, 'plantel_id');
     }
 }

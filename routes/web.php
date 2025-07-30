@@ -10,6 +10,7 @@ use App\Http\Controllers\IncubacaoController;
 use App\Http\Controllers\VariacaoController;
 use App\Http\Controllers\AcasalamentoController;
 use App\Http\Controllers\PosturaOvoController;
+use App\Http\Controllers\MorteController; // NOVO: Importa o MorteController
 // Importa os controladores financeiros
 use App\Http\Controllers\Financeiro\CategoriaController;
 use App\Http\Controllers\Financeiro\ReceitaController;
@@ -18,9 +19,9 @@ use App\Http\Controllers\Financeiro\FinanceiroDashboardController;
 use App\Http\Controllers\Financeiro\TransacaoRecorrenteController;
 use App\Http\Controllers\Financeiro\VendaController;
 use App\Http\Controllers\Financeiro\ReservaController;
-use App\Http\Controllers\Financeiro\ContrachequeController; // NOVO: Importa o controlador de Contracheque
-use App\Http\Controllers\PlantelController; // Adicione esta linha
-use App\Http\Controllers\MovimentacaoPlantelController; // Adicione esta linha
+use App\Http\Controllers\Financeiro\ContrachequeController;
+use App\Http\Controllers\PlantelController;
+use App\Http\Controllers\MovimentacaoPlantelController;
 
 /*
 |--------------------------------------------------------------------------
@@ -58,7 +59,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('aves', [AveController::class, 'index'])->name('aves.index');
     Route::get('aves/criar', [AveController::class, 'create'])->name('aves.create');
     Route::post('aves', [AveController::class, 'store'])->name('aves.store');
-    // Mover a rota de busca para cima para evitar conflitos com {ave}
     Route::get('aves/search-suggestions', [AveController::class, 'searchSuggestions'])->name('aves.searchSuggestions');
     Route::get('aves/search', [AveController::class, 'search'])->name('aves.search');
     Route::get('aves/{ave}', [AveController::class, 'show'])->name('aves.show');
@@ -67,10 +67,11 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('aves/{ave}', [AveController::class, 'destroy'])->name('aves.destroy');
     Route::post('aves/{ave}/restore', [AveController::class, 'restore'])->name('aves.restore');
     Route::delete('aves/{ave}/force-delete', [AveController::class, 'forceDelete'])->name('aves.forceDelete');
-    Route::get('aves/{ave}/register-death', [AveController::class, 'registerDeath'])->name('aves.registerDeath');
-    Route::post('aves/{ave}/store-death', [AveController::class, 'storeDeath'])->name('aves.storeDeath');
+    // REMOVIDAS: Rotas de morte individuais do AveController, agora centralizadas no MorteController
+    // Route::get('aves/{ave}/register-death', [AveController::class, 'registerDeath'])->name('aves.registerDeath');
+    // Route::post('aves/{ave}/store-death', [AveController::class, 'storeDeath'])->name('aves.storeDeath');
     Route::post('aves/{ave}/expedir-certidao', [AveController::class, 'expedirCertidao'])->name('aves.expedirCertidao');
-    
+
     // Rotas Explícitas para Incubacoes (para garantir o nome do parâmetro)
     Route::get('incubacoes', [IncubacaoController::class, 'index'])->name('incubacoes.index');
     Route::get('incubacoes/criar', [IncubacaoController::class, 'create'])->name('incubacoes.create');
@@ -79,13 +80,15 @@ Route::middleware(['auth'])->group(function () {
     Route::get('incubacoes/{incubacao}/editar', [IncubacaoController::class, 'edit'])->name('incubacoes.edit');
     Route::put('incubacoes/{incubacao}', [IncubacaoController::class, 'update'])->name('incubacoes.update');
     Route::delete('incubacoes/{incubacao}', [IncubacaoController::class, 'destroy'])->name('incubacoes.destroy');
+    // Rota para a ficha de incubação
+    Route::get('incubacoes/{incubacao}/ficha', [IncubacaoController::class, 'ficha'])->name('incubacoes.ficha');
 
 
     // Rotas de Recurso para Outros Modelos (mantidos como resource)
     Route::resource('tipos_aves', TipoAveController::class);
     Route::resource('variacoes', VariacaoController::class);
     Route::resource('lotes', LoteController::class);
-    
+
     Route::resource('acasalamentos', AcasalamentoController::class);
     Route::resource('posturas_ovos', PosturaOvoController::class);
 
@@ -131,13 +134,14 @@ Route::middleware(['auth'])->group(function () {
         Route::post('contracheque', [ContrachequeController::class, 'store'])->name('contracheque.store');
         Route::delete('contracheque/{contracheque}', [ContrachequeController::class, 'destroy'])->name('contracheque.destroy');
     });
+
     // Rotas para o Módulo Plantel
     Route::resource('plantel', PlantelController::class);
 
     // Rotas para o Módulo MovimentacoesPlantel
-    // Usamos 'movimentacoes-plantel' no URL para evitar conflito com o nome da tabela
     Route::resource('movimentacoes-plantel', MovimentacaoPlantelController::class);
-
-    // Rota aninhada para criar uma movimentação diretamente de um plantel
     Route::get('plantel/{plantel}/movimentacoes/create', [MovimentacaoPlantelController::class, 'create'])->name('plantel.movimentacoes.create');
+
+    // NOVO: Rotas para o Módulo Mortes (Centralizado)
+    Route::resource('mortes', MorteController::class);
 });

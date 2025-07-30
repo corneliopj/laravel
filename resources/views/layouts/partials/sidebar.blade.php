@@ -134,6 +134,30 @@
                                 <p>Incubação</p>
                             </a>
                         </li>
+                         <li class="nav-item {{ Request::routeIs('mortes.*') ? 'menu-open' : '' }}">
+                    <a href="#" class="nav-link {{ Request::routeIs('mortes.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-skull-crossbones"></i> {{-- Ícone para Mortes --}}
+                        <p>
+                            Mortes
+                            <i class="right fas fa-angle-left"></i>
+                        </p>
+                    </a>
+                    <ul class="nav nav-treeview">
+                        <li class="nav-item">
+                            <a href="{{ route('mortes.index') }}" class="nav-link {{ Request::routeIs('mortes.index') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Listar Mortes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ route('mortes.create') }}" class="nav-link {{ Request::routeIs('mortes.create') ? 'active' : '' }}">
+                                <i class="far fa-circle nav-icon"></i>
+                                <p>Registrar Morte</p>
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+
                     </ul>
                 </li>
 
