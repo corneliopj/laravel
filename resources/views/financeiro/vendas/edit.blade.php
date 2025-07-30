@@ -73,7 +73,7 @@
                                             @endforeach
                                         @else
                                             @foreach ($venda->items as $index => $item)
-                                                @include('vendas.partials.item_row', [
+                                                @include('financeiro.vendas.partials.item_row', [
                                                     'index' => $index,
                                                     'item' => $item,
                                                     'avesDisponiveis' => $avesDisponiveis,
