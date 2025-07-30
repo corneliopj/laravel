@@ -1,7 +1,8 @@
-{{-- resources/views/vendas/partials/item_row.blade.php --}}
+{{-- resources/views/financeiro/vendas/partials/item_row.blade.php --}}
 <div class="card card-outline card-secondary item-row mb-3">
     <div class="card-header">
-        <h3 class="card-title">Item #{{ $index + 1 }}</h3>
+        {{-- CORREÇÃO AQUI: Cast para inteiro antes da soma --}}
+        <h3 class="card-title">Item #{{ (int)$index + 1 }}</h3>
         <div class="card-tools">
             <button type="button" class="btn btn-tool remove-item-btn">
                 <i class="fas fa-times"></i>
