@@ -43,6 +43,36 @@
                                 @csrf
                                 @method('PUT')
                                 <div class="card-body">
+                                    {{-- Mensagens de sucesso/erro --}}
+                                    @if (session('success'))
+                                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                            {{ session('success') }}
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                    @endif
+                                    @if (session('error'))
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            {{ session('error') }}
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                    @endif
+                                    @if ($errors->any())
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            <ul>
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
+                                                @endforeach
+                                            </ul>
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
+                                        </div>
+                                    @endif
+
                                     <div class="form-group">
                                         <label for="data_venda">Data da Venda</label>
                                         <input type="date" name="data_venda" id="data_venda" class="form-control @error('data_venda') is-invalid @enderror" value="{{ old('data_venda', $venda->data_venda->format('Y-m-d')) }}" required>
@@ -57,6 +87,36 @@
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
+                                    <div class="form-group">
+                                        <label for="metodo_pagamento">Método de Pagamento</label>
+                                        <select name="metodo_pagamento" id="metodo_pagamento" class="form-control @error('metodo_pagamento') is-invalid @enderror">
+                                            <option value="">Selecione</option>
+                                            @foreach ($metodosPagamento as $key => $value)
+                                                <option value="{{ $key }}" {{ old('metodo_pagamento', $venda->metodo_pagamento) == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('metodo_pagamento')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="desconto">Desconto (R$)</label>
+                                        <input type="number" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', $venda->desconto) }}" min="0" step="0.01">
+                                        @error('desconto')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="status">Status da Venda</label>
+                                        <select name="status" id="status" class="form-control @error('status') is-invalid @enderror" required>
+                                            @foreach ($statusOptions as $key => $value)
+                                                <option value="{{ $key }}" {{ old('status', $venda->status) == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('status')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
 
                                     <hr>
                                     <h4>Itens da Venda</h4>
@@ -64,7 +124,7 @@
                                         <!-- Itens existentes serão pré-preenchidos aqui -->
                                         @if (old('items'))
                                             @foreach (old('items') as $index => $item)
-                                                @include('vendas.partials.item_row', [
+                                                @include('financeiro.vendas.partials.item_row', [
                                                     'index' => $index,
                                                     'item' => (object) $item,
                                                     'avesDisponiveis' => $avesDisponiveis,
@@ -94,6 +154,25 @@
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
+
+                                    {{-- Totais --}}
+                                    <div class="row">
+                                        <div class="col-md-6 offset-md-6">
+                                            <div class="d-flex justify-content-between">
+                                                <strong>Subtotal:</strong>
+                                                <span id="subtotal_display">R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <strong>Desconto:</strong>
+                                                <span id="desconto_display">R$ {{ number_format($venda->desconto, 2, ',', '.') }}</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <h4><strong>Valor Final:</strong></h4>
+                                                <h4><strong id="valor_final_display">R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</strong></h4>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
                                 <!-- /.card-body -->
                                 <div class="card-footer">
@@ -118,6 +197,7 @@
             let itemIndex = {{ old('items') ? count(old('items')) : $venda->items->count() }};
             const itemsContainer = document.getElementById('items_container');
             const addItemBtn = document.getElementById('add_item_btn');
+            const descontoInput = document.getElementById('desconto');
 
             function initializeItemRow(rowElement) {
                 const tipoItemRadios = rowElement.querySelectorAll('input[name$="[tipo_item]"]');
@@ -128,7 +208,6 @@
                 const quantidadeInput = rowElement.querySelector('[id^="items_"][id$="_quantidade"]');
                 const descricaoItemInput = rowElement.querySelector('[id^="items_"][id$="_descricao_item"]');
                 const precoUnitarioInput = rowElement.querySelector('[id^="items_"][id$="_preco_unitario"]');
-
 
                 function toggleItemFields() {
                     const selectedTipo = rowElement.querySelector('input[name$="[tipo_item]"]:checked').value;
@@ -172,22 +251,46 @@
                     aveIdSelect.addEventListener('change', function() {
                         const selectedOption = this.options[this.selectedIndex];
                         if (selectedOption && selectedOption.value) {
-                            // Exemplo: se você tiver um atributo data-preco-sugerido na option
-                            // const precoSugerido = selectedOption.dataset.precoSugerido;
-                            // if (precoSugerido) {
-                            //     precoUnitarioInput.value = precoSugerido;
-                            // }
                             // Exemplo: preencher descrição com a matrícula da ave
                             descricaoItemInput.value = selectedOption.text.split('(')[0].trim();
+                            // Se a ave tiver um preço sugerido, você pode buscá-lo aqui
+                            // e preencher precoUnitarioInput.value
                         } else {
                             descricaoItemInput.value = '';
-                            // precoUnitarioInput.value = '';
                         }
+                        updateTotals(); // Recalcula totais ao mudar a ave
                     });
                 }
+
+                // Adiciona listeners para quantidade e preço unitário para recalcular o total do item e o total da venda
+                quantidadeInput.addEventListener('input', updateTotals);
+                precoUnitarioInput.addEventListener('input', updateTotals);
             }
 
-            // Inicializa as linhas existentes (se houver old('items'))
+            // Função para calcular e exibir os totais
+            function updateTotals() {
+                let subtotal = 0;
+                // Itera sobre todos os campos de quantidade e preço unitário dos itens
+                itemsContainer.querySelectorAll('.item-row').forEach(rowElement => {
+                    const quantidade = parseFloat(rowElement.querySelector('[id^="items_"][id$="_quantidade"]').value) || 0;
+                    const precoUnitario = parseFloat(rowElement.querySelector('[id^="items_"][id$="_preco_unitario"]').value) || 0;
+                    const itemTotal = quantidade * precoUnitario;
+                    subtotal += itemTotal;
+                });
+
+                const desconto = parseFloat(descontoInput.value) || 0;
+                let valorFinal = subtotal - desconto;
+
+                if (valorFinal < 0) {
+                    valorFinal = 0; // Garante que o valor final não seja negativo
+                }
+
+                document.getElementById('subtotal_display').innerText = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
+                document.getElementById('desconto_display').innerText = `R$ ${desconto.toFixed(2).replace('.', ',')}`;
+                document.getElementById('valor_final_display').innerText = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
+            }
+
+            // Inicializa as linhas existentes (se houver old('items') ou itens da venda)
             itemsContainer.querySelectorAll('.item-row').forEach(row => {
                 initializeItemRow(row);
             });
@@ -212,17 +315,26 @@
                 // Adiciona listener para o botão de remover na nova linha
                 newRow.querySelector('.remove-item-btn').addEventListener('click', function () {
                     newRow.remove();
+                    updateTotals(); // Recalcula totais ao remover item
                 });
 
                 itemIndex++;
+                updateTotals(); // Recalcula totais ao adicionar novo item
             });
 
-            // Adiciona listeners para os botões de remover existentes (se houver old('items'))
+            // Adiciona listeners para os botões de remover existentes
             itemsContainer.querySelectorAll('.remove-item-btn').forEach(btn => {
                 btn.addEventListener('click', function () {
                     btn.closest('.item-row').remove();
+                    updateTotals(); // Recalcula totais ao remover item
                 });
             });
+
+            // Listener para o campo de desconto
+            descontoInput.addEventListener('input', updateTotals);
+
+            // Garante que os totais são calculados na carga da página
+            updateTotals();
         });
     </script>
 </div>
