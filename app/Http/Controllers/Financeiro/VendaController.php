@@ -21,11 +21,31 @@ class VendaController extends Controller
      *
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request) // Adicionado Request para acessar filtros
     {
-        // Carrega as vendas, incluindo os itens e seus relacionamentos com Ave e Plantel
-        $vendas = Venda::with(['items.ave.tipoAve', 'items.plantel'])->orderBy('data_venda', 'desc')->paginate(15);
-        return view('financeiro.vendas.index', compact('vendas'));
+        $query = Venda::query()->with(['items.ave.tipoAve', 'items.plantel']);
+
+        // Lógica de filtro (copiada da sua index.blade.php original)
+        if ($request->has('status') && $request->status != '') {
+            $query->where('status', $request->status);
+        }
+        if ($request->filled('data_inicio')) {
+            $query->where('data_venda', '>=', Carbon::parse($request->data_inicio)->startOfDay());
+        }
+        if ($request->filled('data_fim')) {
+            $query->where('data_venda', '<=', Carbon::parse($request->data_fim)->endOfDay());
+        }
+
+        $vendas = $query->orderBy('data_venda', 'desc')->paginate(15);
+
+        // NOVO: Definir opções de status para o filtro
+        $statusOptions = [
+            'concluida' => 'Concluída',
+            'pendente' => 'Pendente',
+            'cancelada' => 'Cancelada',
+        ];
+
+        return view('financeiro.vendas.index', compact('vendas', 'statusOptions', 'request')); // Passar statusOptions e request para a view
     }
 
     /**
@@ -35,12 +55,9 @@ class VendaController extends Controller
      */
     public function create()
     {
-        // Aves ativas para seleção nos itens (apenas as que podem ser vendidas individualmente)
         $avesDisponiveis = Ave::where('ativo', true)->orderBy('matricula')->get();
-        // Plantéis ativos para seleção nos itens
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        // NOVO: Definir métodos de pagamento
         $metodosPagamento = [
             'Dinheiro' => 'Dinheiro',
             'Cartão de Crédito' => 'Cartão de Crédito',
@@ -50,7 +67,7 @@ class VendaController extends Controller
             'Outro' => 'Outro',
         ];
 
-        return view('financeiro.vendas.create', compact('avesDisponiveis', 'plantelOptions', 'metodosPagamento')); // Passar para a view
+        return view('financeiro.vendas.create', compact('avesDisponiveis', 'plantelOptions', 'metodosPagamento'));
     }
 
     /**
@@ -65,8 +82,8 @@ class VendaController extends Controller
             'data_venda' => 'required|date|before_or_equal:today',
             'comprador' => 'nullable|string|max:255',
             'observacoes' => 'nullable|string|max:1000',
-            'metodo_pagamento' => 'nullable|string|max:255', // Adicionado validação
-            'desconto' => 'nullable|numeric|min:0', // Adicionado validação
+            'metodo_pagamento' => 'nullable|string|max:255',
+            'desconto' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.tipo_item' => ['required', Rule::in(['individual', 'plantel', 'generico'])],
             'items.*.descricao_item' => 'required|string|max:255',
@@ -78,19 +95,18 @@ class VendaController extends Controller
 
         DB::beginTransaction();
         try {
-            $valorTotalItens = 0; // Soma dos itens sem desconto
+            $valorTotalItens = 0;
             $desconto = (float) $request->desconto ?? 0;
 
-            // Primeiro, cria a venda principal para ter um ID
             $venda = Venda::create([
                 'data_venda' => $request->data_venda,
                 'comprador' => $request->comprador,
                 'observacoes' => $request->observacoes,
-                'metodo_pagamento' => $request->metodo_pagamento, // Salvar método de pagamento
-                'desconto' => $desconto, // Salvar desconto
-                'valor_total' => 0, // Será atualizado após processar os itens
-                'valor_final' => 0, // Será atualizado após processar os itens
-                'status' => 'concluida', // Status padrão para vendas diretas
+                'metodo_pagamento' => $request->metodo_pagamento,
+                'desconto' => $desconto,
+                'valor_total' => 0,
+                'valor_final' => 0,
+                'status' => 'concluida',
             ]);
 
             foreach ($request->items as $itemData) {
@@ -98,26 +114,23 @@ class VendaController extends Controller
                 $itemPrecoUnitario = (float) $itemData['preco_unitario'];
                 $itemValorTotal = $itemQuantidade * $itemPrecoUnitario;
 
-                // Acumula o valor total dos itens
                 $valorTotalItens += $itemValorTotal;
 
-                // Lógica de manipulação de estoque/status
                 if ($itemData['tipo_item'] == 'individual') {
                     $ave = Ave::findOrFail($itemData['ave_id']);
                     if (!$ave->ativo) {
                         DB::rollBack();
                         return redirect()->back()->withInput()->with('error', 'A ave ' . $ave->matricula . ' não está ativa e não pode ser vendida.');
                     }
-                    $ave->ativo = false; // Inativa a ave
-                    $ave->vendavel = false; // Marca como não vendável
+                    $ave->ativo = false;
+                    $ave->vendavel = false;
                     $ave->save();
 
-                    // Cria o item de venda
                     VendaItem::create([
                         'venda_id' => $venda->id,
                         'descricao_item' => $itemData['descricao_item'],
                         'ave_id' => $ave->id,
-                        'quantidade' => 1, // Sempre 1 para ave individual
+                        'quantidade' => 1,
                         'preco_unitario' => $itemPrecoUnitario,
                         'valor_total_item' => $itemPrecoUnitario,
                     ]);
@@ -130,7 +143,6 @@ class VendaController extends Controller
                         return redirect()->back()->withInput()->with('error', 'A quantidade de aves (' . $itemQuantidade . ') excede a quantidade atual do plantel ' . $plantel->identificacao_grupo . ' (' . $plantel->quantidade_atual . ').');
                     }
 
-                    // Cria movimentação de saída para o plantel
                     MovimentacaoPlantel::create([
                         'plantel_id' => $plantel->id,
                         'tipo_movimentacao' => 'saida_venda',
@@ -139,7 +151,6 @@ class VendaController extends Controller
                         'observacoes' => 'Venda de ' . $itemQuantidade . ' aves do plantel ' . $plantel->identificacao_grupo . '. Comprador: ' . ($request->comprador ?? 'Não informado'),
                     ]);
 
-                    // Cria o item de venda
                     VendaItem::create([
                         'venda_id' => $venda->id,
                         'descricao_item' => $itemData['descricao_item'],
@@ -160,11 +171,10 @@ class VendaController extends Controller
                 }
             }
 
-            // Atualiza o valor total e final da venda principal
             $venda->valor_total = $valorTotalItens;
             $venda->valor_final = $valorTotalItens - $desconto;
             if ($venda->valor_final < 0) {
-                $venda->valor_final = 0; // Garante que o valor final não seja negativo
+                $venda->valor_final = 0;
             }
             $venda->save();
 
@@ -203,7 +213,6 @@ class VendaController extends Controller
         $avesDisponiveis = Ave::where('ativo', true)->orderBy('matricula')->get();
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        // NOVO: Definir métodos de pagamento
         $metodosPagamento = [
             'Dinheiro' => 'Dinheiro',
             'Cartão de Crédito' => 'Cartão de Crédito',
@@ -213,14 +222,13 @@ class VendaController extends Controller
             'Outro' => 'Outro',
         ];
 
-        // NOVO: Definir opções de status
         $statusOptions = [
             'concluida' => 'Concluída',
             'pendente' => 'Pendente',
             'cancelada' => 'Cancelada',
         ];
 
-        return view('financeiro.vendas.edit', compact('venda', 'avesDisponiveis', 'plantelOptions', 'metodosPagamento', 'statusOptions')); // Passar para a view
+        return view('financeiro.vendas.edit', compact('venda', 'avesDisponiveis', 'plantelOptions', 'metodosPagamento', 'statusOptions'));
     }
 
     /**
@@ -236,9 +244,9 @@ class VendaController extends Controller
             'data_venda' => 'required|date|before_or_equal:today',
             'comprador' => 'nullable|string|max:255',
             'observacoes' => 'nullable|string|max:1000',
-            'metodo_pagamento' => 'nullable|string|max:255', // Adicionado validação
-            'desconto' => 'nullable|numeric|min:0', // Adicionado validação
-            'status' => ['required', Rule::in(['concluida', 'pendente', 'cancelada'])], // Adicionado validação
+            'metodo_pagamento' => 'nullable|string|max:255',
+            'desconto' => 'nullable|numeric|min:0',
+            'status' => ['required', Rule::in(['concluida', 'pendente', 'cancelada'])],
             'items' => 'required|array|min:1',
             'items.*.tipo_item' => ['required', Rule::in(['individual', 'plantel', 'generico'])],
             'items.*.descricao_item' => 'required|string|max:255',
@@ -250,7 +258,6 @@ class VendaController extends Controller
 
         DB::beginTransaction();
         try {
-            // 1. Reverter o status das aves/plantéis dos itens antigos
             foreach ($venda->items as $oldItem) {
                 if ($oldItem->ave_id) {
                     $ave = Ave::find($oldItem->ave_id);
@@ -270,13 +277,11 @@ class VendaController extends Controller
                 }
             }
 
-            // 2. Deletar todos os itens antigos da venda
             $venda->items()->delete();
 
             $valorTotalItens = 0;
             $desconto = (float) $request->desconto ?? 0;
 
-            // 3. Processar e criar os novos itens
             foreach ($request->items as $itemData) {
                 $itemQuantidade = (int) $itemData['quantidade'];
                 $itemPrecoUnitario = (float) $itemData['preco_unitario'];
@@ -339,14 +344,13 @@ class VendaController extends Controller
                 }
             }
 
-            // 4. Atualiza a venda principal
             $venda->update([
                 'data_venda' => $request->data_venda,
                 'comprador' => $request->comprador,
                 'observacoes' => $request->observacoes,
-                'metodo_pagamento' => $request->metodo_pagamento, // Atualizar método de pagamento
-                'desconto' => $desconto, // Atualizar desconto
-                'status' => $request->status, // Atualizar status
+                'metodo_pagamento' => $request->metodo_pagamento,
+                'desconto' => $desconto,
+                'status' => $request->status,
                 'valor_total' => $valorTotalItens,
                 'valor_final' => $valorTotalItens - $desconto,
             ]);
