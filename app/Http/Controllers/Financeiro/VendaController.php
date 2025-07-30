@@ -1,16 +1,18 @@
 <?php
 
-namespace App\Http\Controllers\Financeiro; // Mantenha o namespace financeiro se for o caso
+namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
-use App\Models\Financeiro\Venda; // Modelo de Venda
-use App\Models\Ave; // Modelo de Ave individual
-use App\Models\Plantel; // Modelo de Plantel
-use App\Models\MovimentacaoPlantel; // Modelo de MovimentacaoPlantel
+use App\Models\Financeiro\Venda;
+use App\Models\VendaItem; // Certifique-se de que VendaItem está importado
+use App\Models\Ave;
+use App\Models\Plantel;
+use App\Models\MovimentacaoPlantel;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule; // Para validação de status se necessário
 
 class VendaController extends Controller
 {
@@ -21,34 +23,28 @@ class VendaController extends Controller
      */
     public function index()
     {
-        // Carrega as vendas, incluindo os relacionamentos com Ave e Plantel (se existirem)
-        // Ordena pela data da venda mais recente
-        $vendas = Venda::with(['ave', 'plantel'])->orderBy('data_venda', 'desc')->paginate(15);
+        // Carrega as vendas, incluindo os itens e seus relacionamentos com Ave e Plantel
+        $vendas = Venda::with(['items.ave.tipoAve', 'items.plantel'])->orderBy('data_venda', 'desc')->paginate(15);
         return view('vendas.index', compact('vendas'));
     }
 
     /**
      * Mostra o formulário para registrar uma nova venda.
      *
-     * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\View\View
      */
-    public function create(Request $request)
+    public function create()
     {
-        // Carrega aves ativas para seleção individual
-        $aves = Ave::where('ativo', true)->orderBy('matricula')->get();
-        // Carrega plantéis ativos para seleção em grupo
+        // Aves ativas para seleção nos itens (apenas as que podem ser vendidas individualmente)
+        $avesDisponiveis = Ave::where('ativo', true)->orderBy('matricula')->get();
+        // Plantéis ativos para seleção nos itens
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        // Se veio de um link de ave específica, pré-seleciona a ave
-        $preSelectedAveId = $request->query('ave_id');
-        $preSelectedPlantelId = $request->query('plantel_id');
-
-        return view('vendas.create', compact('aves', 'plantelOptions', 'preSelectedAveId', 'preSelectedPlantelId'));
+        return view('vendas.create', compact('avesDisponiveis', 'plantelOptions'));
     }
 
     /**
-     * Armazena um novo registro de venda no banco de dados.
+     * Armazena um novo registro de venda e seus itens no banco de dados.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\RedirectResponse
@@ -56,63 +52,112 @@ class VendaController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tipo_registro' => 'required|in:individual,plantel', // Campo para diferenciar o tipo de venda
             'data_venda' => 'required|date|before_or_equal:today',
-            'valor_venda' => 'required|numeric|min:0.01',
             'comprador' => 'nullable|string|max:255',
             'observacoes' => 'nullable|string|max:1000',
-            // Validações condicionais
-            'ave_id' => 'required_if:tipo_registro,individual|exists:aves,id',
-            'plantel_id' => 'required_if:tipo_registro,plantel|exists:plantel,id',
-            'quantidade_venda_plantel' => 'required_if:tipo_registro,plantel|integer|min:1',
+            'items' => 'required|array|min:1',
+            'items.*.tipo_item' => ['required', Rule::in(['individual', 'plantel', 'generico'])],
+            'items.*.descricao_item' => 'required|string|max:255',
+            'items.*.ave_id' => 'nullable|required_if:items.*.tipo_item,individual|exists:aves,id',
+            'items.*.plantel_id' => 'nullable|required_if:items.*.tipo_item,plantel|exists:plantel,id',
+            'items.*.quantidade' => 'required|integer|min:1',
+            'items.*.preco_unitario' => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
         try {
+            $valorTotal = 0;
+            $valorFinal = 0; // Se houver desconto na venda principal, ele será aplicado aqui
+
+            // Primeiro, cria a venda principal para ter um ID
             $venda = Venda::create([
                 'data_venda' => $request->data_venda,
-                'valor_venda' => $request->valor_venda,
                 'comprador' => $request->comprador,
                 'observacoes' => $request->observacoes,
+                'valor_total' => 0, // Será atualizado após processar os itens
+                'desconto' => 0, // Pode ser adicionado um campo de desconto no futuro
+                'valor_final' => 0, // Será atualizado após processar os itens
+                'metodo_pagamento' => 'A Definir', // Pode ser adicionado um campo de método de pagamento no futuro
+                'status' => 'concluida', // Status padrão para vendas diretas
             ]);
 
-            if ($request->tipo_registro == 'individual') {
-                $ave = Ave::findOrFail($request->ave_id);
-                $ave->ativo = false; // Inativa a ave individual (ou marca como vendida)
-                $ave->save();
-                $venda->ave_id = $ave->id; // Associa a venda à ave
-                $venda->save(); // Salva a associação
-                $message = 'Venda de ave individual registrada com sucesso!';
+            foreach ($request->items as $itemData) {
+                $itemQuantidade = (int) $itemData['quantidade'];
+                $itemPrecoUnitario = (float) $itemData['preco_unitario'];
+                $itemValorTotal = $itemQuantidade * $itemPrecoUnitario;
 
-            } elseif ($request->tipo_registro == 'plantel') {
-                $plantel = Plantel::findOrFail($request->plantel_id);
+                // Acumula o valor total
+                $valorTotal += $itemValorTotal;
 
-                // Verifica se a quantidade de venda não excede a quantidade atual do plantel
-                if ($request->quantidade_venda_plantel > $plantel->quantidade_atual) {
-                    DB::rollBack();
-                    return redirect()->back()->withInput()->with('error', 'A quantidade de venda não pode exceder a quantidade atual do plantel (' . $plantel->quantidade_atual . ').');
+                // Lógica de manipulação de estoque/status
+                if ($itemData['tipo_item'] == 'individual') {
+                    $ave = Ave::findOrFail($itemData['ave_id']);
+                    if (!$ave->ativo) {
+                        DB::rollBack();
+                        return redirect()->back()->withInput()->with('error', 'A ave ' . $ave->matricula . ' não está ativa e não pode ser vendida.');
+                    }
+                    $ave->ativo = false; // Inativa a ave
+                    $ave->vendavel = false; // Marca como não vendável
+                    $ave->save();
+
+                    // Cria o item de venda
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'ave_id' => $ave->id,
+                        'quantidade' => 1, // Sempre 1 para ave individual
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemPrecoUnitario,
+                    ]);
+
+                } elseif ($itemData['tipo_item'] == 'plantel') {
+                    $plantel = Plantel::findOrFail($itemData['plantel_id']);
+
+                    if ($itemQuantidade > $plantel->quantidade_atual) {
+                        DB::rollBack();
+                        return redirect()->back()->withInput()->with('error', 'A quantidade de aves (' . $itemQuantidade . ') excede a quantidade atual do plantel ' . $plantel->identificacao_grupo . ' (' . $plantel->quantidade_atual . ').');
+                    }
+
+                    // Cria movimentação de saída para o plantel
+                    MovimentacaoPlantel::create([
+                        'plantel_id' => $plantel->id,
+                        'tipo_movimentacao' => 'saida_venda',
+                        'quantidade' => $itemQuantidade,
+                        'data_movimentacao' => $request->data_venda,
+                        'observacoes' => 'Venda de ' . $itemQuantidade . ' aves do plantel ' . $plantel->identificacao_grupo . '. Comprador: ' . ($request->comprador ?? 'Não informado'),
+                    ]);
+
+                    // Cria o item de venda
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'plantel_id' => $plantel->id,
+                        'quantidade' => $itemQuantidade,
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemValorTotal,
+                    ]);
+
+                } else { // Tipo genérico
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'quantidade' => $itemQuantidade,
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemValorTotal,
+                    ]);
                 }
-
-                // Cria uma movimentação de saída para o plantel
-                MovimentacaoPlantel::create([
-                    'plantel_id' => $plantel->id,
-                    'tipo_movimentacao' => 'saida_venda',
-                    'quantidade' => $request->quantidade_venda_plantel,
-                    'data_movimentacao' => $request->data_venda,
-                    'observacoes' => 'Venda de ' . $request->quantidade_venda_plantel . ' aves do plantel. Comprador: ' . ($request->comprador ?? 'Não informado'),
-                ]);
-                $venda->plantel_id = $plantel->id; // Associa a venda ao plantel
-                $venda->quantidade_venda_plantel = $request->quantidade_venda_plantel; // Armazena a quantidade de venda do plantel
-                $venda->save(); // Salva a associação
-
-                $message = 'Venda de aves em plantel registrada com sucesso!';
             }
 
-            DB::commit(); // Confirma a transação
-            return redirect()->route('vendas.index')->with('success', $message);
+            // Atualiza o valor total e final da venda principal
+            $venda->valor_total = $valorTotal;
+            $venda->valor_final = $valorTotal; // Assumindo sem desconto por enquanto
+            $venda->save();
+
+            DB::commit();
+            return redirect()->route('vendas.index')->with('success', 'Venda registrada com sucesso! ID: ' . $venda->id);
 
         } catch (\Exception $e) {
-            DB::rollBack(); // Reverte a transação em caso de erro
+            DB::rollBack();
             Log::error("Erro ao registrar venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
             return redirect()->back()->withInput()->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
         }
@@ -126,8 +171,7 @@ class VendaController extends Controller
      */
     public function show(Venda $venda)
     {
-        // Carrega os relacionamentos para exibir os detalhes
-        $venda->load('ave', 'plantel');
+        $venda->load(['items.ave.tipoAve', 'items.plantel']);
         return view('vendas.show', compact('venda'));
     }
 
@@ -139,14 +183,19 @@ class VendaController extends Controller
      */
     public function edit(Venda $venda)
     {
-        // Carrega aves ativas e plantéis para os dropdowns
-        $aves = Ave::where('ativo', true)->orderBy('matricula')->get();
+        $venda->load(['items.ave', 'items.plantel']);
+
+        // Aves ativas para seleção nos itens (apenas as que podem ser vendidas individualmente)
+        $avesDisponiveis = Ave::where('ativo', true)->orderBy('matricula')->get();
+        // Plantéis ativos para seleção nos itens
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        // Determina o tipo de registro atual para pré-selecionar no formulário
-        $tipoRegistroAtual = $venda->ave_id ? 'individual' : ($venda->plantel_id ? 'plantel' : '');
+        // Para o formulário de edição, precisamos das aves/plantéis que já estão na venda
+        // e das que estão disponíveis (não vendidas/reservadas em outras transações)
+        // Isso é complexo, então vamos simplificar: todas as aves ativas e plantéis ativos
+        // estarão disponíveis para seleção, e a validação de estoque/status ocorrerá no update.
 
-        return view('vendas.edit', compact('venda', 'aves', 'plantelOptions', 'tipoRegistroAtual'));
+        return view('vendas.edit', compact('venda', 'avesDisponiveis', 'plantelOptions'));
     }
 
     /**
@@ -159,86 +208,123 @@ class VendaController extends Controller
     public function update(Request $request, Venda $venda)
     {
         $request->validate([
-            'tipo_registro' => 'required|in:individual,plantel',
             'data_venda' => 'required|date|before_or_equal:today',
-            'valor_venda' => 'required|numeric|min:0.01',
             'comprador' => 'nullable|string|max:255',
             'observacoes' => 'nullable|string|max:1000',
-            'ave_id' => 'required_if:tipo_registro,individual|exists:aves,id',
-            'plantel_id' => 'required_if:tipo_registro,plantel|exists:plantel,id',
-            'quantidade_venda_plantel' => 'required_if:tipo_registro,plantel|integer|min:1',
+            'items' => 'required|array|min:1',
+            'items.*.tipo_item' => ['required', Rule::in(['individual', 'plantel', 'generico'])],
+            'items.*.descricao_item' => 'required|string|max:255',
+            'items.*.ave_id' => 'nullable|required_if:items.*.tipo_item,individual|exists:aves,id',
+            'items.*.plantel_id' => 'nullable|required_if:items.*.tipo_item,plantel|exists:plantel,id',
+            'items.*.quantidade' => 'required|integer|min:1',
+            'items.*.preco_unitario' => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
         try {
-            // Reverte o estado anterior antes de aplicar as novas mudanças
-            if ($venda->ave_id) {
-                $oldAve = Ave::find($venda->ave_id);
-                if ($oldAve) {
-                    $oldAve->ativo = true; // Reativa a ave anterior
-                    $oldAve->save();
+            // 1. Reverter o status das aves/plantéis dos itens antigos
+            foreach ($venda->items as $oldItem) {
+                if ($oldItem->ave_id) {
+                    $ave = Ave::find($oldItem->ave_id);
+                    if ($ave) {
+                        $ave->ativo = true; // Reativa a ave
+                        $ave->vendavel = true; // Marca como vendável novamente
+                        $ave->save();
+                    }
+                } elseif ($oldItem->plantel_id) {
+                    MovimentacaoPlantel::create([
+                        'plantel_id' => $oldItem->plantel_id,
+                        'tipo_movimentacao' => 'entrada', // Reverte a saída anterior
+                        'quantidade' => $oldItem->quantidade,
+                        'data_movimentacao' => Carbon::now(),
+                        'observacoes' => 'Ajuste de reversão de venda (ID Venda: ' . $venda->id . ') devido a edição.',
+                    ]);
                 }
-            } elseif ($venda->plantel_id && $venda->quantidade_venda_plantel) {
-                // Para edição de vendas de plantel, a reversão é mais complexa.
-                // Idealmente, uma movimentação de "ajuste" seria criada
-                // ou a movimentação original seria editada.
-                MovimentacaoPlantel::create([
-                    'plantel_id' => $venda->plantel_id,
-                    'tipo_movimentacao' => 'entrada', // Ajuste para reverter a venda anterior
-                    'quantidade' => $venda->quantidade_venda_plantel,
-                    'data_movimentacao' => Carbon::now(), // Data do ajuste
-                    'observacoes' => 'Ajuste de reversão de venda anterior (ID Venda: ' . $venda->id . ') devido a edição.',
-                ]);
             }
 
-            // Atualiza o registro de venda
+            // 2. Deletar todos os itens antigos da venda
+            $venda->items()->delete();
+
+            $valorTotal = 0;
+            // 3. Processar e criar os novos itens
+            foreach ($request->items as $itemData) {
+                $itemQuantidade = (int) $itemData['quantidade'];
+                $itemPrecoUnitario = (float) $itemData['preco_unitario'];
+                $itemValorTotal = $itemQuantidade * $itemPrecoUnitario;
+
+                $valorTotal += $itemValorTotal;
+
+                if ($itemData['tipo_item'] == 'individual') {
+                    $ave = Ave::findOrFail($itemData['ave_id']);
+                    if (!$ave->ativo) {
+                        DB::rollBack();
+                        return redirect()->back()->withInput()->with('error', 'A ave ' . $ave->matricula . ' não está ativa e não pode ser vendida.');
+                    }
+                    $ave->ativo = false;
+                    $ave->vendavel = false;
+                    $ave->save();
+
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'ave_id' => $ave->id,
+                        'quantidade' => 1,
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemPrecoUnitario,
+                    ]);
+
+                } elseif ($itemData['tipo_item'] == 'plantel') {
+                    $plantel = Plantel::findOrFail($itemData['plantel_id']);
+
+                    if ($itemQuantidade > $plantel->quantidade_atual) {
+                        DB::rollBack();
+                        return redirect()->back()->withInput()->with('error', 'A quantidade de aves (' . $itemQuantidade . ') excede a quantidade atual do plantel ' . $plantel->identificacao_grupo . ' (' . $plantel->quantidade_atual . ').');
+                    }
+
+                    MovimentacaoPlantel::create([
+                        'plantel_id' => $plantel->id,
+                        'tipo_movimentacao' => 'saida_venda',
+                        'quantidade' => $itemQuantidade,
+                        'data_movimentacao' => $request->data_venda,
+                        'observacoes' => 'Venda de ' . $itemQuantidade . ' aves do plantel ' . $plantel->identificacao_grupo . ' (Atualização de venda ID: ' . $venda->id . '). Comprador: ' . ($request->comprador ?? 'Não informado'),
+                    ]);
+
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'plantel_id' => $plantel->id,
+                        'quantidade' => $itemQuantidade,
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemValorTotal,
+                    ]);
+
+                } else { // Tipo genérico
+                    VendaItem::create([
+                        'venda_id' => $venda->id,
+                        'descricao_item' => $itemData['descricao_item'],
+                        'quantidade' => $itemQuantidade,
+                        'preco_unitario' => $itemPrecoUnitario,
+                        'valor_total_item' => $itemValorTotal,
+                    ]);
+                }
+            }
+
+            // 4. Atualiza a venda principal
             $venda->update([
                 'data_venda' => $request->data_venda,
-                'valor_venda' => $request->valor_venda,
                 'comprador' => $request->comprador,
                 'observacoes' => $request->observacoes,
-                'ave_id' => null, // Reseta para garantir que apenas um tipo seja associado
-                'plantel_id' => null,
-                'quantidade_venda_plantel' => null,
+                'valor_total' => $valorTotal,
+                'valor_final' => $valorTotal, // Assumindo sem desconto
             ]);
 
-            if ($request->tipo_registro == 'individual') {
-                $ave = Ave::findOrFail($request->ave_id);
-                $ave->ativo = false; // Inativa a nova ave
-                $ave->save();
-                $venda->ave_id = $ave->id;
-                $venda->save();
-                $message = 'Venda de ave individual atualizada com sucesso!';
-
-            } elseif ($request->tipo_registro == 'plantel') {
-                $plantel = Plantel::findOrFail($request->plantel_id);
-
-                // Verifica se a quantidade de venda não excede a quantidade atual do plantel
-                if ($request->quantidade_venda_plantel > $plantel->quantidade_atual + ($venda->quantidade_venda_plantel ?? 0)) {
-                    DB::rollBack();
-                    return redirect()->back()->withInput()->with('error', 'A quantidade de venda não pode exceder a quantidade atual do plantel.');
-                }
-
-                MovimentacaoPlantel::create([
-                    'plantel_id' => $plantel->id,
-                    'tipo_movimentacao' => 'saida_venda',
-                    'quantidade' => $request->quantidade_venda_plantel,
-                    'data_movimentacao' => $request->data_venda,
-                    'observacoes' => 'Venda de ' . $request->quantidade_venda_plantel . ' aves do plantel (Atualização de registro de venda ID: ' . $venda->id . '). Comprador: ' . ($request->comprador ?? 'Não informado'),
-                ]);
-                $venda->plantel_id = $plantel->id;
-                $venda->quantidade_venda_plantel = $request->quantidade_venda_plantel;
-                $venda->save();
-                $message = 'Venda de aves em plantel atualizada com sucesso!';
-            }
-
             DB::commit();
-            return redirect()->route('vendas.index')->with('success', $message);
+            return redirect()->route('vendas.index')->with('success', 'Venda atualizada com sucesso! ID: ' . $venda->id);
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao atualizar registro de venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
-            return redirect()->back()->withInput()->with('error', 'Erro ao atualizar registro de venda: ' . $e->getMessage());
+            Log::error("Erro ao atualizar venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
+            return redirect()->back()->withInput()->with('error', 'Erro ao atualizar venda: ' . $e->getMessage());
         }
     }
 
@@ -252,24 +338,28 @@ class VendaController extends Controller
     {
         DB::beginTransaction();
         try {
-            if ($venda->ave_id) {
-                $ave = Ave::find($venda->ave_id);
-                if ($ave) {
-                    $ave->ativo = true; // Reativa a ave ao deletar o registro de venda individual
-                    $ave->save();
+            // Reverte o status de todas as aves/plantéis associados aos itens da venda
+            foreach ($venda->items as $item) {
+                if ($item->ave_id) {
+                    $ave = Ave::find($item->ave_id);
+                    if ($ave) {
+                        $ave->ativo = true;
+                        $ave->vendavel = true;
+                        $ave->save();
+                    }
+                } elseif ($item->plantel_id) {
+                    MovimentacaoPlantel::create([
+                        'plantel_id' => $item->plantel_id,
+                        'tipo_movimentacao' => 'entrada', // Reverte a saída
+                        'quantidade' => $item->quantidade,
+                        'data_movimentacao' => Carbon::now(),
+                        'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido à exclusão do registro.',
+                    ]);
                 }
-            } elseif ($venda->plantel_id && $venda->quantidade_venda_plantel) {
-                // Ao deletar uma venda de plantel, cria uma movimentação de "entrada" para reverter
-                MovimentacaoPlantel::create([
-                    'plantel_id' => $venda->plantel_id,
-                    'tipo_movimentacao' => 'entrada',
-                    'quantidade' => $venda->quantidade_venda_plantel,
-                    'data_movimentacao' => Carbon::now(),
-                    'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido à exclusão do registro.',
-                ]);
             }
 
-            $venda->delete(); // Exclui o registro de venda
+            $venda->delete(); // Exclui a venda (e seus itens via cascade no DB)
+
             DB::commit();
             return redirect()->route('vendas.index')->with('success', 'Registro de venda excluído com sucesso e status revertido!');
 
@@ -278,5 +368,37 @@ class VendaController extends Controller
             Log::error("Erro ao excluir registro de venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
             return redirect()->back()->with('error', 'Erro ao excluir registro de venda: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Busca aves disponíveis para venda via AJAX (para o Select2).
+     * Este método pode ser adaptado ou removido se a busca for integrada diretamente no formulário de itens.
+     */
+    public function searchAvesForSale(Request $request)
+    {
+        $query = $request->get('q');
+        if (empty($query)) {
+            return response()->json([]);
+        }
+
+        // Aves que não estão ativas (já vendidas ou mortas) não devem aparecer
+        $aves = Ave::where('vendavel', true)
+                    ->where('ativo', true)
+                    ->where('matricula', 'like', '%' . $query . '%')
+                    ->with('tipoAve', 'variacao')
+                    ->limit(10)
+                    ->get();
+
+        $results = $aves->map(function($ave) {
+            $tipoAveNome = $ave->tipoAve->nome ?? 'N/A';
+            $variacaoNome = $ave->variacao->nome ?? 'N/A';
+            return [
+                'id' => $ave->id,
+                'text' => "{$ave->matricula} ({$tipoAveNome} - {$variacaoNome})",
+                'preco_sugerido' => number_format($ave->preco_sugerido ?? 0.00, 2, '.', ''), // Assumindo que Ave tem preco_sugerido
+            ];
+        });
+
+        return response()->json($results);
     }
 }

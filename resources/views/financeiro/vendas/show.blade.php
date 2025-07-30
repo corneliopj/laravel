@@ -2,132 +2,161 @@
     $pageTitle = 'Detalhes da Venda';
 @endphp
 
-{{-- Inclui o partial head --}}
 @include('layouts.partials.head')
 
 <div class="wrapper">
-    {{-- Inclui o partial navbar --}}
     @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
     @include('layouts.partials.sidebar')
 
+    <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <div class="content-header">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1 class="m-0">Detalhes da Venda</h1>
+                        <h1>Detalhes da Venda: #{{ $venda->id }}</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
-                            <li class="breadcrumb-item"><a href="{{ url('/') }}">Home</a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('financeiro.vendas.index') }}">Vendas</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
                             <li class="breadcrumb-item active">Detalhes</li>
                         </ol>
                     </div>
                 </div>
-            </div>
-        </div>
+            </div><!-- /.container-fluid -->
+        </section>
 
-        <div class="content">
+        <!-- Main content -->
+        <section class="content">
             <div class="container-fluid">
                 <div class="row">
-                    <div class="col-md-10">
-                        <div class="card card-info">
+                    <div class="col-md-10 offset-md-1">
+                        <div class="card card-primary">
                             <div class="card-header">
-                                <h3 class="card-title">Venda #{{ $venda->id }}</h3>
+                                <h3 class="card-title">Informações da Venda</h3>
                             </div>
+                            <!-- /.card-header -->
                             <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>ID da Venda:</strong> {{ $venda->id }}</p> {{-- Usando ID --}}
-                                        <p><strong>Data da Venda:</strong> {{ $venda->data_venda->format('d/m/Y H:i') }}</p>
-                                        <p><strong>Método de Pagamento:</strong> {{ $venda->metodo_pagamento ?? 'Não Informado' }}</p>
-                                        <p><strong>Status:</strong>
-                                            @php
-                                                $badgeClass = '';
-                                                switch ($venda->status) {
-                                                    case 'concluida': $badgeClass = 'badge-success'; break;
-                                                    case 'pendente': $badgeClass = 'badge-warning'; break;
-                                                    case 'cancelada': $badgeClass = 'badge-danger'; break;
-                                                    default: $badgeClass = 'badge-secondary'; break;
-                                                }
-                                            @endphp
-                                            <span class="badge {{ $badgeClass }}">{{ ucfirst($venda->status) }}</span>
-                                        </p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p><strong>Valor Total (Bruto):</strong> R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</p>
-                                        <p><strong>Desconto:</strong> R$ {{ number_format($venda->desconto, 2, ',', '.') }}</p>
-                                        <p><strong>Valor Final:</strong> R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</p>
-                                    </div>
+                                <div class="form-group">
+                                    <label>ID da Venda:</label>
+                                    <p>{{ $venda->id }}</p>
                                 </div>
-                                <p><strong>Observações:</strong> {{ $venda->observacoes ?? 'N/A' }}</p>
-
-                                <hr>
-                                <h4>Informações de Comissão</h4>
-                                @if ($venda->user)
-                                    <p><strong>Vendedor:</strong> {{ $venda->user->name }}</p>
-                                    <p><strong>Percentual de Comissão:</strong> {{ number_format($venda->comissao_percentual, 2, ',', '.') }}%</p>
-                                    @if ($venda->despesaComissao)
-                                        <p><strong>Despesa de Comissão Gerada:</strong>
-                                            <a href="{{ route('financeiro.despesas.show', $venda->despesaComissao->id) }}">Ver Despesa #{{ $venda->despesaComissao->id }}</a> (R$ {{ number_format($venda->despesaComissao->valor, 2, ',', '.') }})
-                                        </p>
-                                    @else
-                                        <p><strong>Despesa de Comissão:</strong> Não gerada ou removida.</p>
-                                    @endif
-                                @else
-                                    <p>Nenhuma comissão associada a esta venda.</p>
-                                @endif
+                                <div class="form-group">
+                                    <label>Data da Venda:</label>
+                                    <p>{{ $venda->data_venda->format('d/m/Y') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Comprador:</label>
+                                    <p>{{ $venda->comprador ?? 'Não informado' }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Observações da Venda:</label>
+                                    <p>{{ $venda->observacoes ?? 'N/A' }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Status:</label>
+                                    <p>
+                                        @if ($venda->status == 'concluida')
+                                            <span class="badge badge-success">Concluída</span>
+                                        @elseif ($venda->status == 'pendente')
+                                            <span class="badge badge-warning">Pendente</span>
+                                        @else
+                                            <span class="badge badge-danger">Cancelada</span>
+                                        @endif
+                                    </p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Valor Total da Venda:</label>
+                                    <p>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Desconto:</label>
+                                    <p>R$ {{ number_format($venda->desconto, 2, ',', '.') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Valor Final da Venda:</label>
+                                    <p>R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Método de Pagamento:</label>
+                                    <p>{{ $venda->metodo_pagamento ?? 'Não informado' }}</p>
+                                </div>
 
                                 <hr>
                                 <h4>Itens da Venda</h4>
-                                <div class="table-responsive">
-                                    <table class="table table-bordered table-hover table-sm">
-                                        <thead>
-                                            <tr>
-                                                <th>Descrição</th>
-                                                <th>Ave (Matrícula)</th>
-                                                <th>Qtd</th>
-                                                <th>Preço Unit.</th>
-                                                <th>Total Item</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @forelse ($venda->vendaItems as $item)
+                                @if ($venda->items->isEmpty())
+                                    <p>Nenhum item registrado para esta venda.</p>
+                                @else
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-striped">
+                                            <thead>
                                                 <tr>
-                                                    <td>{{ $item->descricao_item }}</td>
-                                                    <td>
-                                                        @if ($item->ave)
-                                                            <a href="{{ route('aves.show', $item->ave->id) }}">{{ $item->ave->matricula }} ({{ $item->ave->tipoAve->nome ?? 'N/A' }})</a>
-                                                        @else
-                                                            N/A
-                                                        @endif
-                                                    </td>
-                                                    <td>{{ $item->quantidade }}</td>
-                                                    <td>R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
-                                                    <td>R$ {{ number_format($item->valor_total_item, 2, ',', '.') }}</td>
+                                                    <th>Descrição</th>
+                                                    <th>Tipo</th>
+                                                    <th>Identificação</th>
+                                                    <th>Qtd</th>
+                                                    <th>Preço Unitário</th>
+                                                    <th>Valor Total Item</th>
                                                 </tr>
-                                            @empty
-                                                <tr>
-                                                    <td colspan="5" class="text-center">Nenhum item nesta venda.</td>
-                                                </tr>
-                                            @endforelse
-                                        </tbody>
-                                    </table>
+                                            </thead>
+                                            <tbody>
+                                                @foreach ($venda->items as $item)
+                                                    <tr>
+                                                        <td>{{ $item->descricao_item }}</td>
+                                                        <td>
+                                                            @if ($item->ave_id)
+                                                                Ave Individual
+                                                            @elseif ($item->plantel_id)
+                                                                Plantel
+                                                            @else
+                                                                Genérico
+                                                            @endif
+                                                        </td>
+                                                        <td>
+                                                            @if ($item->ave_id)
+                                                                <a href="{{ route('aves.show', $item->ave_id) }}">{{ $item->ave->matricula ?? 'Ave Removida' }}</a>
+                                                            @elseif ($item->plantel_id)
+                                                                <a href="{{ route('plantel.show', $item->plantel_id) }}">{{ $item->plantel->identificacao_grupo ?? 'Plantel Removido' }}</a>
+                                                            @else
+                                                                N/A
+                                                            @endif
+                                                        </td>
+                                                        <td>{{ $item->quantidade }}</td>
+                                                        <td>R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
+                                                        <td>R$ {{ number_format($item->valor_total_item, 2, ',', '.') }}</td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                @endif
+
+                                <div class="form-group mt-4">
+                                    <label>Registrado em:</label>
+                                    <p>{{ $venda->created_at->format('d/m/Y H:i:s') }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Última Atualização:</label>
+                                    <p>{{ $venda->updated_at->format('d/m/Y H:i:s') }}</p>
                                 </div>
                             </div>
+                            <!-- /.card-body -->
                             <div class="card-footer">
-                                <a href="{{ route('financeiro.vendas.edit', $venda->id) }}" class="btn btn-warning">Editar Venda</a>
-                                <a href="{{ route('financeiro.vendas.index') }}" class="btn btn-secondary">Voltar para a Lista</a>
+                                <a href="{{ route('vendas.edit', $venda->id) }}" class="btn btn-warning">Editar</a>
+                                <a href="{{ route('vendas.index') }}" class="btn btn-secondary">Voltar à Lista</a>
                             </div>
                         </div>
+                        <!-- /.card -->
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
+        <!-- /.content -->
     </div>
-
-    {{-- Inclui o partial footer --}}
+    <!-- /.content-wrapper -->
+    @include('layouts.partials.scripts')
     @include('layouts.partials.footer')
 </div>
+<!-- ./wrapper -->

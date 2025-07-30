@@ -1,5 +1,5 @@
 @php
-    $pageTitle = 'Editar Venda';
+    $pageTitle = 'Registrar Nova Venda';
 @endphp
 
 @include('layouts.partials.head')
@@ -15,13 +15,13 @@
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>Editar Venda: #{{ $venda->id }}</h1>
+                        <h1>Registrar Nova Venda</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
                             <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
                             <li class="breadcrumb-item"><a href="{{ route('vendas.index') }}">Vendas</a></li>
-                            <li class="breadcrumb-item active">Editar</li>
+                            <li class="breadcrumb-item active">Registrar</li>
                         </ol>
                     </div>
                 </div>
@@ -33,26 +33,25 @@
             <div class="container-fluid">
                 <div class="row">
                     <div class="col-md-10 offset-md-1">
-                        <div class="card card-warning">
+                        <div class="card card-success">
                             <div class="card-header">
                                 <h3 class="card-title">Dados da Venda</h3>
                             </div>
                             <!-- /.card-header -->
                             <!-- form start -->
-                            <form action="{{ route('vendas.update', $venda->id) }}" method="POST">
+                            <form action="{{ route('vendas.store') }}" method="POST">
                                 @csrf
-                                @method('PUT')
                                 <div class="card-body">
                                     <div class="form-group">
                                         <label for="data_venda">Data da Venda</label>
-                                        <input type="date" name="data_venda" id="data_venda" class="form-control @error('data_venda') is-invalid @enderror" value="{{ old('data_venda', $venda->data_venda->format('Y-m-d')) }}" required>
+                                        <input type="date" name="data_venda" id="data_venda" class="form-control @error('data_venda') is-invalid @enderror" value="{{ old('data_venda', date('Y-m-d')) }}" required>
                                         @error('data_venda')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
                                     </div>
                                     <div class="form-group">
                                         <label for="comprador">Comprador</label>
-                                        <input type="text" name="comprador" id="comprador" class="form-control @error('comprador') is-invalid @enderror" value="{{ old('comprador', $venda->comprador) }}" placeholder="Nome do comprador ou empresa">
+                                        <input type="text" name="comprador" id="comprador" class="form-control @error('comprador') is-invalid @enderror" value="{{ old('comprador') }}" placeholder="Nome do comprador ou empresa">
                                         @error('comprador')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -61,7 +60,7 @@
                                     <hr>
                                     <h4>Itens da Venda</h4>
                                     <div id="items_container">
-                                        <!-- Itens existentes serão pré-preenchidos aqui -->
+                                        <!-- Itens serão adicionados aqui via JavaScript -->
                                         @if (old('items'))
                                             @foreach (old('items') as $index => $item)
                                                 @include('vendas.partials.item_row', [
@@ -72,14 +71,12 @@
                                                 ])
                                             @endforeach
                                         @else
-                                            @foreach ($venda->items as $index => $item)
-                                                @include('vendas.partials.item_row', [
-                                                    'index' => $index,
-                                                    'item' => $item,
-                                                    'avesDisponiveis' => $avesDisponiveis,
-                                                    'plantelOptions' => $plantelOptions,
-                                                ])
-                                            @endforeach
+                                            @include('vendas.partials.item_row', [
+                                                'index' => 0,
+                                                'item' => null,
+                                                'avesDisponiveis' => $avesDisponiveis,
+                                                'plantelOptions' => $plantelOptions,
+                                            ])
                                         @endif
                                     </div>
 
@@ -89,7 +86,7 @@
 
                                     <div class="form-group">
                                         <label for="observacoes">Observações</label>
-                                        <textarea name="observacoes" id="observacoes" class="form-control @error('observacoes') is-invalid @enderror" rows="3" placeholder="Detalhes adicionais sobre a venda...">{{ old('observacoes', $venda->observacoes) }}</textarea>
+                                        <textarea name="observacoes" id="observacoes" class="form-control @error('observacoes') is-invalid @enderror" rows="3" placeholder="Detalhes adicionais sobre a venda..."></textarea>
                                         @error('observacoes')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -97,8 +94,8 @@
                                 </div>
                                 <!-- /.card-body -->
                                 <div class="card-footer">
-                                    <button type="submit" class="btn btn-primary">Atualizar Venda</button>
-                                    <a href="{{ route('vendas.show', $venda->id) }}" class="btn btn-secondary">Cancelar</a>
+                                    <button type="submit" class="btn btn-success">Registrar Venda</button>
+                                    <a href="{{ route('vendas.index') }}" class="btn btn-secondary">Cancelar</a>
                                 </div>
                             </form>
                         </div>
@@ -115,7 +112,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            let itemIndex = {{ old('items') ? count(old('items')) : $venda->items->count() }};
+            let itemIndex = {{ old('items') ? count(old('items')) : 1 }};
             const itemsContainer = document.getElementById('items_container');
             const addItemBtn = document.getElementById('add_item_btn');
 
