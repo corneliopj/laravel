@@ -1,6 +1,6 @@
-    <?php
+<?php // NADA, absolutamente NADA deve vir antes desta linha.
 
-    namespace App\Http\Controllers\Financeiro;
+namespace App\Http\Controllers\Financeiro;
 
     use App\Http\Controllers\Controller;
     use App\Models\Venda; // Namespace correto
