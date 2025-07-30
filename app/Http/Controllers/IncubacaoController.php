@@ -121,16 +121,17 @@ class IncubacaoController extends Controller
     /**
      * Mostra o formulário para editar uma incubação existente.
      */
-    public function edit(string $id)
+
+  public function edit(string $id)
     {
         $incubacao = Incubacao::with(['lote', 'posturaOvo'])->findOrFail($id);
-        $tiposAve = TipoAve::orderBy('nome')->get();
+        $tiposAve = TipoAve::orderBy('nome')->get(); // Esta é a variável correta
         $matrizes = Ave::where('sexo', 'Fêmea')->where('ativo', true)->get();
         $reprodutores = Ave::where('sexo', 'Macho')->where('ativo', true)->get();
         $lotes = Lote::orderBy('identificacao_lote')->get();
         $posturaOvos = PosturaOvo::all();
 
-        // Esta view já estava correta, apenas confirmando as variáveis passadas
+        // Passando 'tiposAve' (singular) para a view
         return view('incubacoes.edit', compact('incubacao', 'tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
     }
 

@@ -59,7 +59,8 @@
                                         <label for="tipo_ave_id">Tipo de Ave (Ovos)</label>
                                         <select name="tipo_ave_id" id="tipo_ave_id" class="form-control @error('tipo_ave_id') is-invalid @enderror" required>
                                             <option value="">Selecione o Tipo de Ave</option>
-                                            @foreach($tiposAves as $tipo)
+                                            {{-- CORREÇÃO AQUI: $tiposAves para $tiposAve --}}
+                                            @foreach($tiposAve as $tipo)
                                                 <option value="{{ $tipo->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipo->id ? 'selected' : '' }}>{{ $tipo->nome }}</option>
                                             @endforeach
                                         </select>
