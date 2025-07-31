@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
-use App\Models\Receita;
-use App\Models\Despesa;
-use App\Models\Categoria;
-use App\Models\Venda;
-use App\Models\Reserva;
-use App\Models\User; // Necessário para comissão
+use App\Models\Receita; // Ajustado: Modelos na raiz App\Models
+use App\Models\Despesa; // Ajustado: Modelos na raiz App\Models
+use App\Models\Categoria; // Ajustado: Modelos na raiz App\Models
+use App\Models\Venda; // Ajustado: Modelos na raiz App\Models
+use App\Models\Reserva; // Ajustado: Modelos na raiz App\Models
+use App\Models\User; // Necessário para comissão (se aplicável, com base na sua lógica real)
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -26,10 +26,12 @@ class FinanceiroDashboardController extends Controller
         $mes = $request->input('mes', Carbon::now()->month);
 
         // Dados de resumo mensal para o dashboard
+        // CORRIGIDO: Usando 'data' ao invés de 'data_receita'
         $receitasMes = Receita::whereYear('data', $ano)
                                 ->whereMonth('data', $mes)
                                 ->sum('valor');
 
+        // CORRIGIDO: Usando 'data' ao invés de 'data_despesa'
         $despesasMes = Despesa::whereYear('data', $ano)
                                 ->whereMonth('data', $mes)
                                 ->sum('valor');
@@ -37,26 +39,44 @@ class FinanceiroDashboardController extends Controller
         $saldoMes = $receitasMes - $despesasMes;
 
         // Saldo total acumulado (geral)
+        // CORRIGIDO: Usando 'data'
         $saldoTotal = Receita::sum('valor') - Despesa::sum('valor');
 
         // Comissões do usuário logado para o mês/ano selecionado
-        $comissaoAcumuladaMes = 0;
+        // CORRIGIDO: A lógica de comissão precisa ser revisada, pois 'responsavel_id' não existe.
+        // Por enquanto, vamos manter um valor padrão de 0 para evitar erros,
+        // ou você pode integrar a lógica de comissão vinda diretamente das Vendas,
+        // se a comissão for gerada no ato da venda e registrada lá.
+        // Se a comissão é uma despesa, mas não tem 'responsavel_id', precisa de outro campo para vincular ao usuário.
+        // Ex: Se o 'User' que está logado pode ser um 'Vendedor' e a comissão é uma 'Despesa'
+        // associada a uma venda feita por ele (e não diretamente na despesa em si).
+        $comissaoAcumuladaMes = 0; // Valor padrão para evitar erro.
+        // PARA IMPLEMENTAR: Se a comissão é uma despesa, mas sem 'responsavel_id',
+        // como ela é vinculada ao usuário? Pode ser por um campo 'vendedor_id' na despesa,
+        // ou a comissão é uma 'Receita Negativa' ou um campo calculado nas vendas.
+        // Para a sua estrutura atual, se não há 'responsavel_id' na Despesa,
+        // a lógica abaixo não funcionará.
+        /*
         if (Auth::check()) {
             $user = Auth::user();
-            // Supondo que as comissões são despesas vinculadas ao usuário como 'responsavel_id'
-            // E que há uma categoria específica para comissões
             $categoriaComissao = Categoria::where('nome', 'Comissões')
                                           ->where('tipo', 'despesa')
                                           ->first();
 
             if ($categoriaComissao) {
-                $comissaoAcumuladaMes = Despesa::where('responsavel_id', $user->id)
-                                                ->where('categoria_id', $categoriaComissao->id)
-                                                ->whereYear('data_despesa', $ano)
-                                                ->whereMonth('data_despesa', $mes)
-                                                ->sum('valor');
+                // ESTA PARTE CAUSARIA ERRO DEVIDO A 'responsavel_id'
+                // $comissaoAcumuladaMes = Despesa::where('responsavel_id', $user->id)
+                //                                 ->where('categoria_id', $categoriaComissao->id)
+                //                                 ->whereYear('data', $ano)
+                //                                 ->whereMonth('data', $mes)
+                //                                 ->sum('valor');
             }
         }
+        */
+        // Se a comissão é registrada em 'Despesa' mas sem 'responsavel_id',
+        // você precisará de uma forma diferente de associá-la ao usuário.
+        // Se o Contracheque já gerencia isso, pode ser que a comissão
+        // seja calculada e acessada via o ContrachequeController.
 
         // Dados para Gráficos
         $dadosGraficoBarras = $this->getDadosGraficoBarras($ano);
@@ -78,20 +98,20 @@ class FinanceiroDashboardController extends Controller
     private function getDadosGraficoBarras(int $ano): array
     {
         $receitasPorMes = Receita::select(
-                DB::raw('MONTH(data_receita) as mes'),
+                DB::raw('MONTH(data) as mes'), // CORRIGIDO: Usando 'data'
                 DB::raw('SUM(valor) as total_receita')
             )
-            ->whereYear('data_receita', $ano)
+            ->whereYear('data', $ano) // CORRIGIDO: Usando 'data'
             ->groupBy('mes')
             ->orderBy('mes')
             ->pluck('total_receita', 'mes')
             ->toArray();
 
         $despesasPorMes = Despesa::select(
-                DB::raw('MONTH(data_despesa) as mes'),
+                DB::raw('MONTH(data) as mes'), // CORRIGIDO: Usando 'data'
                 DB::raw('SUM(valor) as total_despesa')
             )
-            ->whereYear('data_despesa', $ano)
+            ->whereYear('data', $ano) // CORRIGIDO: Usando 'data'
             ->groupBy('mes')
             ->orderBy('mes')
             ->pluck('total_despesa', 'mes')
@@ -115,14 +135,14 @@ class FinanceiroDashboardController extends Controller
                 [
                     'label' => 'Receitas',
                     'data' => $receitas,
-                    'backgroundColor' => 'rgba(75, 192, 192, 0.6)', // Cor padrão, será sobrescrita por gradiente no JS
+                    'backgroundColor' => 'rgba(75, 192, 192, 0.6)',
                     'borderColor' => 'rgba(75, 192, 192, 1)',
                     'borderWidth' => 1
                 ],
                 [
                     'label' => 'Despesas',
                     'data' => $despesas,
-                    'backgroundColor' => 'rgba(255, 99, 132, 0.6)', // Cor padrão
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.6)',
                     'borderColor' => 'rgba(255, 99, 132, 1)',
                     'borderWidth' => 1
                 ]
@@ -143,8 +163,8 @@ class FinanceiroDashboardController extends Controller
                 DB::raw('SUM(despesas.valor) as total_gasto')
             )
             ->join('categorias', 'despesas.categoria_id', '=', 'categorias.id')
-            ->whereYear('data_despesa', $ano)
-            ->whereMonth('data_despesa', $mes)
+            ->whereYear('despesas.data', $ano) // CORRIGIDO: Usando 'data'
+            ->whereMonth('despesas.data', $mes) // CORRIGIDO: Usando 'data'
             ->groupBy('categorias.nome')
             ->orderByDesc('total_gasto')
             ->get();
@@ -152,7 +172,6 @@ class FinanceiroDashboardController extends Controller
         $labels = $despesasPorCategoria->pluck('categoria_nome')->toArray();
         $data = $despesasPorCategoria->pluck('total_gasto')->toArray();
         $backgroundColors = [];
-        // Gerar cores aleatórias para o Chart.js. Os gradientes serão aplicados no JS.
         foreach ($labels as $key => $label) {
             $backgroundColors[] = 'rgba(' . rand(0, 255) . ',' . rand(0, 255) . ',' . rand(0, 255) . ', 0.6)';
         }
@@ -162,7 +181,7 @@ class FinanceiroDashboardController extends Controller
             'datasets' => [
                 [
                     'data' => $data,
-                    'backgroundColor' => $backgroundColors, // Cores padrão, gradientes no JS
+                    'backgroundColor' => $backgroundColors,
                     'borderColor' => '#fff',
                     'borderWidth' => 1
                 ]
@@ -178,15 +197,18 @@ class FinanceiroDashboardController extends Controller
     private function getDadosGraficoLinha(int $ano): array
     {
         $saldoAcumulado = [];
+        // CORRIGIDO: Usando 'data'
         $saldoAtual = $this->getSaldoAcumuladoAteDezembroDoAnoAnterior($ano); // Saldo até o final do ano anterior
 
         for ($mes = 1; $mes <= 12; $mes++) {
-            $receitasMes = Receita::whereYear('data_receita', $ano)
-                                ->whereMonth('data_receita', $mes)
+            // CORRIGIDO: Usando 'data'
+            $receitasMes = Receita::whereYear('data', $ano)
+                                ->whereMonth('data', $mes)
                                 ->sum('valor');
 
-            $despesasMes = Despesa::whereYear('data_despesa', $ano)
-                                ->whereMonth('data_despesa', $mes)
+            // CORRIGIDO: Usando 'data'
+            $despesasMes = Despesa::whereYear('data', $ano)
+                                ->whereMonth('data', $mes)
                                 ->sum('valor');
 
             $saldoDoMes = $receitasMes - $despesasMes;
@@ -206,14 +228,14 @@ class FinanceiroDashboardController extends Controller
                 [
                     'label' => 'Saldo Acumulado',
                     'data' => $saldoAcumulado,
-                    'fill' => false, // Não preenche a área abaixo da linha
-                    'borderColor' => 'rgba(54, 162, 235, 1)', // Cor padrão, gradiente no JS
-                    'tension' => 0.1, // Suaviza a linha
-                    'pointRadius' => 5, // Tamanho dos pontos
-                    'pointBackgroundColor' => 'rgba(54, 162, 235, 1)', // Cor dos pontos
+                    'fill' => false,
+                    'borderColor' => 'rgba(54, 162, 235, 1)',
+                    'tension' => 0.1,
+                    'pointRadius' => 5,
+                    'pointBackgroundColor' => 'rgba(54, 162, 235, 1)',
                     'pointBorderColor' => '#fff',
-                    'pointHoverRadius' => 7, // Aumenta o ponto ao passar o mouse
-                    'pointHoverBackgroundColor' => 'rgba(255, 206, 86, 1)', // Cor do ponto ao passar o mouse
+                    'pointHoverRadius' => 7,
+                    'pointHoverBackgroundColor' => 'rgba(255, 206, 86, 1)',
                     'pointHoverBorderColor' => 'rgba(255, 206, 86, 1)',
                 ]
             ]
@@ -228,8 +250,10 @@ class FinanceiroDashboardController extends Controller
     private function getSaldoAcumuladoAteDezembroDoAnoAnterior(int $ano): float
     {
         $anoAnterior = $ano - 1;
-        $receitasAnoAnterior = Receita::whereYear('data_receita', '<=', $anoAnterior)->sum('valor');
-        $despesasAnoAnterior = Despesa::whereYear('data_despesa', '<=', $anoAnterior)->sum('valor');
+        // CORRIGIDO: Usando 'data'
+        $receitasAnoAnterior = Receita::whereYear('data', '<=', $anoAnterior)->sum('valor');
+        // CORRIGIDO: Usando 'data'
+        $despesasAnoAnterior = Despesa::whereYear('data', '<=', $anoAnterior)->sum('valor');
 
         return $receitasAnoAnterior - $despesasAnoAnterior;
     }
@@ -252,12 +276,12 @@ class FinanceiroDashboardController extends Controller
 
         // Filtros de data
         if ($request->filled('data_inicio')) {
-            $queryReceitas->where('data_receita', '>=', Carbon::parse($request->data_inicio)->startOfDay());
-            $queryDespesas->where('data_despesa', '>=', Carbon::parse($request->data_inicio)->startOfDay());
+            $queryReceitas->where('data', '>=', Carbon::parse($request->data_inicio)->startOfDay()); // CORRIGIDO
+            $queryDespesas->where('data', '>=', Carbon::parse($request->data_inicio)->startOfDay()); // CORRIGIDO
         }
         if ($request->filled('data_fim')) {
-            $queryReceitas->where('data_receita', '<=', Carbon::parse($request->data_fim)->endOfDay());
-            $queryDespesas->where('data_despesa', '<=', Carbon::parse($request->data_fim)->endOfDay());
+            $queryReceitas->where('data', '<=', Carbon::parse($request->data_fim)->endOfDay()); // CORRIGIDO
+            $queryDespesas->where('data', '<=', Carbon::parse($request->data_fim)->endOfDay()); // CORRIGIDO
         }
         // Filtro por categoria para Receitas
         if ($request->filled('categoria_receita_id') && $request->categoria_receita_id != 'all') {
@@ -276,7 +300,7 @@ class FinanceiroDashboardController extends Controller
                 'tipo' => 'Receita',
                 'descricao' => $item->descricao,
                 'valor' => $item->valor,
-                'data' => $item->data_receita,
+                'data' => $item->data, // CORRIGIDO
                 'categoria' => $item->categoria->nome ?? 'N/A',
             ];
         });
@@ -287,7 +311,7 @@ class FinanceiroDashboardController extends Controller
                 'tipo' => 'Despesa',
                 'descricao' => $item->descricao,
                 'valor' => $item->valor,
-                'data' => $item->data_despesa,
+                'data' => $item->data, // CORRIGIDO
                 'categoria' => $item->categoria->nome ?? 'N/A',
             ];
         });
@@ -323,8 +347,10 @@ class FinanceiroDashboardController extends Controller
 
         // Loop pelos dias no período selecionado
         for ($data = clone $dataInicio; $data->lte($dataFim); $data->addDay()) {
-            $receitasDoDia = Receita::whereDate('data_receita', $data)->sum('valor');
-            $despesasDoDia = Despesa::whereDate('data_despesa', $data)->sum('valor');
+            // CORRIGIDO: Usando 'data'
+            $receitasDoDia = Receita::whereDate('data', $data)->sum('valor');
+            // CORRIGIDO: Usando 'data'
+            $despesasDoDia = Despesa::whereDate('data', $data)->sum('valor');
             $saldoDoDia = $receitasDoDia - $despesasDoDia;
             $saldoAcumulado += $saldoDoDia;
 
@@ -349,25 +375,25 @@ class FinanceiroDashboardController extends Controller
                 [
                     'type' => 'bar',
                     'label' => 'Receitas Diárias',
-                    'backgroundColor' => 'rgba(75, 192, 192, 0.6)', // Cor padrão para barras
+                    'backgroundColor' => 'rgba(75, 192, 192, 0.6)',
                     'data' => $receitasData,
                     'yAxisID' => 'y',
                 ],
                 [
                     'type' => 'bar',
                     'label' => 'Despesas Diárias',
-                    'backgroundColor' => 'rgba(255, 99, 132, 0.6)', // Cor padrão para barras
+                    'backgroundColor' => 'rgba(255, 99, 132, 0.6)',
                     'data' => $despesasData,
                     'yAxisID' => 'y',
                 ],
                 [
                     'type' => 'line',
                     'label' => 'Saldo Acumulado',
-                    'borderColor' => 'rgb(54, 162, 235)', // Cor padrão para linha
+                    'borderColor' => 'rgb(54, 162, 235)',
                     'borderWidth' => 2,
                     'fill' => false,
                     'data' => $saldoAcumuladoData,
-                    'yAxisID' => 'y1', // Eixo Y secundário para o saldo acumulado, se desejar
+                    'yAxisID' => 'y1',
                     'pointRadius' => 5,
                     'pointBackgroundColor' => 'rgb(54, 162, 235)',
                 ]
@@ -383,8 +409,7 @@ class FinanceiroDashboardController extends Controller
      */
     public function relatorioPorCategoria(Request $request)
     {
-        // Define o tipo de transação a ser filtrada (receita, despesa ou ambos)
-        $tipo = $request->input('tipo', 'ambos'); // 'receita', 'despesa', 'ambos'
+        $tipo = $request->input('tipo', 'ambos');
         $dataInicio = $request->input('data_inicio');
         $dataFim = $request->input('data_fim');
 
@@ -404,8 +429,8 @@ class FinanceiroDashboardController extends Controller
 
             if ($categoria->tipo == 'receita' || $tipo == 'ambos' || $tipo == 'receita') {
                 $receitasQuery = Receita::where('categoria_id', $categoria->id);
-                if ($dataInicio) $receitasQuery->where('data_receita', '>=', Carbon::parse($dataInicio)->startOfDay());
-                if ($dataFim) $receitasQuery->where('data_receita', '<=', Carbon::parse($dataFim)->endOfDay());
+                if ($dataInicio) $receitasQuery->where('data', '>=', Carbon::parse($dataInicio)->startOfDay()); // CORRIGIDO
+                if ($dataFim) $receitasQuery->where('data', '<=', Carbon::parse($dataFim)->endOfDay()); // CORRIGIDO
                 if ($tipo == 'receita' || $tipo == 'ambos') {
                      $totalValor += $receitasQuery->sum('valor');
                 }
@@ -413,14 +438,14 @@ class FinanceiroDashboardController extends Controller
 
             if ($categoria->tipo == 'despesa' || $tipo == 'ambos' || $tipo == 'despesa') {
                 $despesasQuery = Despesa::where('categoria_id', $categoria->id);
-                if ($dataInicio) $despesasQuery->where('data_despesa', '>=', Carbon::parse($dataInicio)->startOfDay());
-                if ($dataFim) $despesasQuery->where('data_despesa', '<=', Carbon::parse($dataFim)->endOfDay());
+                if ($dataInicio) $despesasQuery->where('data', '>=', Carbon::parse($dataInicio)->startOfDay()); // CORRIGIDO
+                if ($dataFim) $despesasQuery->where('data', '<=', Carbon::parse($dataFim)->endOfDay()); // CORRIGIDO
                 if ($tipo == 'despesa' || $tipo == 'ambos') {
-                    $totalValor -= $despesasQuery->sum('valor'); // Despesas são subtraídas
+                    $totalValor -= $despesasQuery->sum('valor');
                 }
             }
 
-            if ($totalValor != 0) { // Incluir apenas categorias com valor
+            if ($totalValor != 0) {
                 $dadosPorCategoria[] = [
                     'categoria' => $categoria->nome,
                     'tipo' => $categoria->tipo,
@@ -429,12 +454,10 @@ class FinanceiroDashboardController extends Controller
             }
         }
 
-        // Preparar dados para o gráfico (Doughnut ou Polar Area)
         $labels = array_column($dadosPorCategoria, 'categoria');
-        $data = array_map('abs', array_column($dadosPorCategoria, 'total_valor')); // Usar valor absoluto para o gráfico
+        $data = array_map('abs', array_column($dadosPorCategoria, 'total_valor'));
         $backgroundColors = [];
         foreach ($labels as $key => $label) {
-            // Gerar cores aleatórias para o Chart.js. Os gradientes serão aplicados no JS.
             $backgroundColors[] = 'rgba(' . rand(0, 255) . ',' . rand(0, 255) . ',' . rand(0, 255) . ', 0.6)';
         }
 
@@ -443,7 +466,7 @@ class FinanceiroDashboardController extends Controller
             'datasets' => [
                 [
                     'data' => $data,
-                    'backgroundColor' => $backgroundColors, // Cores padrão, gradientes no JS
+                    'backgroundColor' => $backgroundColors,
                     'borderColor' => '#fff',
                     'borderWidth' => 1
                 ]
