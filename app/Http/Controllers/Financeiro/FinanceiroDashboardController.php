@@ -26,12 +26,12 @@ class FinanceiroDashboardController extends Controller
         $mes = $request->input('mes', Carbon::now()->month);
 
         // Dados de resumo mensal para o dashboard
-        $receitasMes = Receita::whereYear('data_receita', $ano)
-                                ->whereMonth('data_receita', $mes)
+        $receitasMes = Receita::whereYear('data', $ano)
+                                ->whereMonth('data', $mes)
                                 ->sum('valor');
 
-        $despesasMes = Despesa::whereYear('data_despesa', $ano)
-                                ->whereMonth('data_despesa', $mes)
+        $despesasMes = Despesa::whereYear('data', $ano)
+                                ->whereMonth('data', $mes)
                                 ->sum('valor');
 
         $saldoMes = $receitasMes - $despesasMes;
