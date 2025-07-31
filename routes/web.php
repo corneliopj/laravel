@@ -67,10 +67,12 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('aves/{ave}', [AveController::class, 'destroy'])->name('aves.destroy');
     Route::post('aves/{ave}/restore', [AveController::class, 'restore'])->name('aves.restore');
     Route::delete('aves/{ave}/force-delete', [AveController::class, 'forceDelete'])->name('aves.forceDelete');
-    // REMOVIDAS: Rotas de morte individuais do AveController, agora centralizadas no MorteController
-    // Route::get('aves/{ave}/register-death', [AveController::class, 'registerDeath'])->name('aves.registerDeath');
-    // Route::post('aves/{ave}/store-death', [AveController::class, 'storeDeath'])->name('aves.storeDeath');
     Route::post('aves/{ave}/expedir-certidao', [AveController::class, 'expedirCertidao'])->name('aves.expedirCertidao');
+
+    // NOVO: Rota para registrar morte de uma ave específica
+    // Isso redirecionará para o formulário de criação de morte, pré-preenchendo a ave.
+    Route::get('aves/{ave}/registrar-morte', [MorteController::class, 'create'])->name('aves.registerDeath');
+
 
     // Rotas Explícitas para Incubacoes (para garantir o nome do parâmetro)
     Route::get('incubacoes', [IncubacaoController::class, 'index'])->name('incubacoes.index');

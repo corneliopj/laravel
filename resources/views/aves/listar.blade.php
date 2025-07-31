@@ -168,9 +168,11 @@
                                                         <a href="{{ route('aves.edit', $ave->id) }}" class="btn btn-warning btn-sm mb-1" title="Editar">
                                                             <i class="fas fa-edit"></i> Editar
                                                         </a>
-                                                        <a href="{{ route('aves.registerDeath', $ave->id) }}" class="btn btn-danger btn-sm mb-1" title="Registrar Morte">
-                                                            <i class="fas fa-skull"></i> Morte
+                                                       {{-- Botão para Registrar Morte --}}
+                                                        <a href="{{ route('aves.registerDeath', $ave->id) }}" class="btn btn-danger">
+                                                            <i class="fas fa-skull-crossbones"></i> Registrar Morte
                                                         </a>
+
                                                         <form action="{{ route('aves.destroy', $ave->id) }}" method="POST" style="display:inline-block;">
                                                             @csrf
                                                             @method('DELETE')
