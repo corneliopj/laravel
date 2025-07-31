@@ -187,5 +187,5 @@
     <!-- /.content-wrapper -->
     @include('layouts.partials.scripts')
     @include('layouts.partials.footer')
-</div>
+</div> 
 <!-- ./wrapper -->
