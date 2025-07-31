@@ -42,13 +42,12 @@ class IncubacaoController extends Controller
 
         $incubacoes = $query->orderBy('ativo', 'desc')
                             ->orderBy('data_entrada_incubadora', 'desc')
-                            ->paginate(15);
+                            ->paginate(10);
 
-        $tiposAve = TipoAve::orderBy('nome')->get();
-        $lotes = Lote::orderBy('identificacao_lote')->get(); // Adicionando lotes para filtros, se necessário
+        $tiposAves = TipoAve::orderBy('nome')->get(); // Para o filtro
+        $statusOptions = ['ativo' => 'Ativo', 'inativo' => 'Inativo']; // Para o filtro
 
-        // CORREÇÃO: O método index deve retornar a view 'incubacoes.index'
-        return view('incubacoes.index', compact('incubacoes', 'tiposAve', 'lotes', 'request'));
+        return view('incubacoes.index', compact('incubacoes', 'tiposAves', 'statusOptions', 'request'));
     }
 
     /**
@@ -56,14 +55,11 @@ class IncubacaoController extends Controller
      */
     public function create()
     {
-        $tiposAve = TipoAve::orderBy('nome')->get();
-        $matrizes = Ave::where('sexo', 'Fêmea')->where('ativo', true)->get();
-        $reprodutores = Ave::where('sexo', 'Macho')->where('ativo', true)->get();
-        $lotes = Lote::orderBy('identificacao_lote')->get();
-        $posturaOvos = PosturaOvo::all();
+        $tiposAves = TipoAve::orderBy('nome')->get();
+        $lotes = Lote::where('ativo', true)->orderBy('identificacao_lote')->get();
+        $posturasOvos = PosturaOvo::where('ativo', true)->orderBy('data_postura', 'desc')->get();
 
-        // CORREÇÃO: Alterado para 'incubacoes.create' para consistência
-        return view('incubacoes.create', compact('tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
+        return view('incubacoes.create', compact('tiposAves', 'lotes', 'posturasOvos'));
     }
 
     /**
@@ -72,34 +68,32 @@ class IncubacaoController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'tipo_ave_id' => 'required|exists:tipos_aves,id', // Corrigido para 'tipos_aves'
-            'data_entrada_incubadora' => 'required|date|before_or_equal:today',
+            'lote_ovos_id' => 'nullable|exists:lotes,id',
+            'tipo_ave_id' => 'required|exists:tipos_aves,id',
+            'postura_ovo_id' => 'nullable|exists:posturas_ovos,id',
+            'data_entrada_incubadora' => 'required|date',
             'quantidade_ovos' => 'required|integer|min:1',
-            'observacoes' => 'nullable|string|max:1000',
-            'matriz_id' => 'nullable|exists:aves,id',
-            'reprodutor_id' => 'nullable|exists:aves,id',
             'chocadeira' => 'nullable|string|max:255',
-            'lote_id' => 'nullable|exists:lotes,id',
-            'postura_ovo_id' => 'nullable|exists:postura_ovos,id',
+            'observacoes' => 'nullable|string|max:1000',
+            'ativo' => 'boolean',
         ]);
 
         try {
+            $tipoAve = TipoAve::findOrFail($request->tipo_ave_id);
+            $tempoEclosao = $tipoAve->tempo_eclosao ?? 21; // Pega o tempo_eclosao do tipo de ave, padrão 21 dias
+
+            $dataPrevistaEclosao = Carbon::parse($request->data_entrada_incubadora)->addDays($tempoEclosao);
+
             Incubacao::create([
+                'lote_ovos_id' => $request->lote_ovos_id,
                 'tipo_ave_id' => $request->tipo_ave_id,
-                'data_entrada_incubadora' => $request->data_entrada_incubadora,
-                'quantidade_ovos' => $request->quantidade_ovos,
-                'observacoes' => $request->observacoes,
-                'matriz_id' => $request->matriz_id,
-                'reprodutor_id' => $request->reprodutor_id,
-                'chocadeira' => $request->chocadeira,
-                'lote_id' => $request->lote_id,
                 'postura_ovo_id' => $request->postura_ovo_id,
-                'data_prevista_eclosao' => Carbon::parse($request->data_entrada_incubadora)->addDays(21),
-                'ativo' => true,
-                'quantidade_eclodidos' => 0,
-                'quantidade_inferteis' => 0,
-                'quantidade_infectados' => 0,
-                'quantidade_mortos' => 0,
+                'data_entrada_incubadora' => $request->data_entrada_incubadora,
+                'data_prevista_eclosao' => $dataPrevistaEclosao, // Usando o cálculo dinâmico
+                'quantidade_ovos' => $request->quantidade_ovos,
+                'chocadeira' => $request->chocadeira,
+                'observacoes' => $request->observacoes,
+                'ativo' => $request->boolean('ativo'),
             ]);
 
             return redirect()->route('incubacoes.index')->with('success', 'Incubação registrada com sucesso!');
@@ -112,75 +106,64 @@ class IncubacaoController extends Controller
     /**
      * Exibe os detalhes de uma incubação específica.
      */
-    public function show(string $id)
+    public function show(Incubacao $incubacao)
     {
-        $incubacao = Incubacao::with(['tipoAve', 'matriz', 'reprodutor', 'lote', 'posturaOvo'])->findOrFail($id);
+        $incubacao->load(['tipoAve', 'lote', 'posturaOvo']);
         return view('incubacoes.show', compact('incubacao'));
     }
 
     /**
      * Mostra o formulário para editar uma incubação existente.
      */
-
-  public function edit(string $id)
+    public function edit(Incubacao $incubacao)
     {
-        $incubacao = Incubacao::with(['lote', 'posturaOvo'])->findOrFail($id);
-        $tiposAve = TipoAve::orderBy('nome')->get(); // Esta é a variável correta
-        $matrizes = Ave::where('sexo', 'Fêmea')->where('ativo', true)->get();
-        $reprodutores = Ave::where('sexo', 'Macho')->where('ativo', true)->get();
-        $lotes = Lote::orderBy('identificacao_lote')->get();
-        $posturaOvos = PosturaOvo::all();
+        $tiposAves = TipoAve::orderBy('nome')->get();
+        $lotes = Lote::where('ativo', true)->orderBy('identificacao_lote')->get();
+        $posturasOvos = PosturaOvo::where('ativo', true)->orderBy('data_postura', 'desc')->get();
 
-        // Passando 'tiposAve' (singular) para a view
-        return view('incubacoes.edit', compact('incubacao', 'tiposAve', 'matrizes', 'reprodutores', 'lotes', 'posturaOvos'));
+        return view('incubacoes.edit', compact('incubacao', 'tiposAves', 'lotes', 'posturasOvos'));
     }
 
     /**
      * Atualiza uma incubação existente no banco de dados.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Incubacao $incubacao)
     {
-        $incubacao = Incubacao::findOrFail($id);
-
         $request->validate([
-            'tipo_ave_id' => 'required|exists:tipos_aves,id', // Corrigido para 'tipos_aves'
-            'data_entrada_incubadora' => 'required|date|before_or_equal:today',
+            'lote_ovos_id' => 'nullable|exists:lotes,id',
+            'tipo_ave_id' => 'required|exists:tipos_aves,id',
+            'postura_ovo_id' => 'nullable|exists:posturas_ovos,id',
+            'data_entrada_incubadora' => 'required|date',
             'quantidade_ovos' => 'required|integer|min:1',
-            'observacoes' => 'nullable|string|max:1000',
-            'matriz_id' => 'nullable|exists:aves,id',
-            'reprodutor_id' => 'nullable|exists:aves,id',
+            'quantidade_eclodidos' => 'nullable|integer|min:0|max:' . $request->quantidade_ovos,
+            'quantidade_inferteis' => 'nullable|integer|min:0',
+            'quantidade_infectados' => 'nullable|integer|min:0',
+            'quantidade_mortos' => 'nullable|integer|min:0',
             'chocadeira' => 'nullable|string|max:255',
-            'lote_id' => 'nullable|exists:lotes,id',
-            'postura_ovo_id' => 'nullable|exists:postura_ovos,id',
-            'ativo' => 'required|boolean',
-            'quantidade_eclodidos' => 'required|integer|min:0|max:' . $request->quantidade_ovos,
-            'quantidade_inferteis' => 'required|integer|min:0|max:' . $request->quantidade_ovos,
-            'quantidade_infectados' => 'required|integer|min:0|max:' . $request->quantidade_ovos,
-            'quantidade_mortos' => 'required|integer|min:0|max:' . $request->quantidade_ovos,
+            'observacoes' => 'nullable|string|max:1000',
+            'ativo' => 'boolean',
         ]);
 
-        $totalResultados = $request->quantidade_eclodidos + $request->quantidade_inferteis + $request->quantidade_infectados + $request->quantidade_mortos;
-        if ($totalResultados > $request->quantidade_ovos) {
-            return redirect()->back()->withInput()->with('error', 'A soma dos ovos eclodidos, inférteis, infectados e mortos não pode exceder a quantidade total de ovos.');
-        }
-
         try {
+            $tipoAve = TipoAve::findOrFail($request->tipo_ave_id);
+            $tempoEclosao = $tipoAve->tempo_eclosao ?? 21; // Pega o tempo_eclosao do tipo de ave, padrão 21 dias
+
+            $dataPrevistaEclosao = Carbon::parse($request->data_entrada_incubadora)->addDays($tempoEclosao);
+
             $incubacao->update([
+                'lote_ovos_id' => $request->lote_ovos_id,
                 'tipo_ave_id' => $request->tipo_ave_id,
-                'data_entrada_incubadora' => $request->data_entrada_incubadora,
-                'quantidade_ovos' => $request->quantidade_ovos,
-                'observacoes' => $request->observacoes,
-                'matriz_id' => $request->matriz_id,
-                'reprodutor_id' => $request->reprodutor_id,
-                'chocadeira' => $request->chocadeira,
-                'lote_id' => $request->lote_id,
                 'postura_ovo_id' => $request->postura_ovo_id,
-                'ativo' => $request->ativo,
+                'data_entrada_incubadora' => $request->data_entrada_incubadora,
+                'data_prevista_eclosao' => $dataPrevistaEclosao, // Usando o cálculo dinâmico
+                'quantidade_ovos' => $request->quantidade_ovos,
                 'quantidade_eclodidos' => $request->quantidade_eclodidos,
                 'quantidade_inferteis' => $request->quantidade_inferteis,
                 'quantidade_infectados' => $request->quantidade_infectados,
                 'quantidade_mortos' => $request->quantidade_mortos,
-                'data_prevista_eclosao' => Carbon::parse($request->data_entrada_incubadora)->addDays(21),
+                'chocadeira' => $request->chocadeira,
+                'observacoes' => $request->observacoes,
+                'ativo' => $request->boolean('ativo'),
             ]);
 
             return redirect()->route('incubacoes.index')->with('success', 'Incubação atualizada com sucesso!');
@@ -205,5 +188,14 @@ class IncubacaoController extends Controller
             Log::error("Erro ao inativar incubação: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
             return redirect()->back()->with('error', 'Erro ao inativar incubação: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Exibe a ficha de incubação para impressão ou visualização.
+     */
+    public function ficha(Incubacao $incubacao)
+    {
+        $incubacao->load(['tipoAve', 'lote', 'posturaOvo']);
+        return view('incubacoes.ficha', compact('incubacao'));
     }
 }

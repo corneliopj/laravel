@@ -10,7 +10,7 @@ use App\Http\Controllers\IncubacaoController;
 use App\Http\Controllers\VariacaoController;
 use App\Http\Controllers\AcasalamentoController;
 use App\Http\Controllers\PosturaOvoController;
-use App\Http\Controllers\MorteController; // NOVO: Importa o MorteController
+use App\Http\Controllers\MorteController;
 // Importa os controladores financeiros
 use App\Http\Controllers\Financeiro\CategoriaController;
 use App\Http\Controllers\Financeiro\ReceitaController;
@@ -68,9 +68,6 @@ Route::middleware(['auth'])->group(function () {
     Route::post('aves/{ave}/restore', [AveController::class, 'restore'])->name('aves.restore');
     Route::delete('aves/{ave}/force-delete', [AveController::class, 'forceDelete'])->name('aves.forceDelete');
     Route::post('aves/{ave}/expedir-certidao', [AveController::class, 'expedirCertidao'])->name('aves.expedirCertidao');
-
-    // NOVO: Rota para registrar morte de uma ave específica
-    // Isso redirecionará para o formulário de criação de morte, pré-preenchendo a ave.
     Route::get('aves/{ave}/registrar-morte', [MorteController::class, 'create'])->name('aves.registerDeath');
 
 
@@ -88,6 +85,9 @@ Route::middleware(['auth'])->group(function () {
 
     // Rotas de Recurso para Outros Modelos (mantidos como resource)
     Route::resource('tipos_aves', TipoAveController::class);
+    // NOVO: Rota para buscar o tempo de eclosão de um tipo de ave
+    Route::get('tipos_aves/{tipoAve}/tempo-eclosao', [TipoAveController::class, 'getTempoEclosao'])->name('tipos_aves.getTempoEclosao');
+
     Route::resource('variacoes', VariacaoController::class);
     Route::resource('lotes', LoteController::class);
 
