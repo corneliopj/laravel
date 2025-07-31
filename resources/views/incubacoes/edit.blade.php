@@ -77,7 +77,7 @@
                                         <label for="tipo_ave_id">Tipo de Ave</label>
                                         <select name="tipo_ave_id" id="tipo_ave_id" class="form-control @error('tipo_ave_id') is-invalid @enderror" required>
                                             <option value="">Selecione um Tipo de Ave</option>
-                                            @foreach($tiposAves as $tipoAve) {{-- CORREÇÃO AQUI: $tiposAves --}}
+                                            @foreach($tiposAves as $tipoAve)
                                                 <option value="{{ $tipoAve->id }}" {{ old('tipo_ave_id', $incubacao->tipo_ave_id) == $tipoAve->id ? 'selected' : '' }} data-tempo-eclosao="{{ $tipoAve->tempo_eclosao ?? 0 }}">{{ $tipoAve->nome }}</option>
                                             @endforeach
                                         </select>
@@ -104,7 +104,8 @@
                                         <select name="postura_ovo_id" id="postura_ovo_id" class="form-control @error('postura_ovo_id') is-invalid @enderror">
                                             <option value="">Selecione uma Postura de Ovo</option>
                                             @foreach($posturasOvos as $posturaOvo)
-                                                <option value="{{ $posturaOvo->id }}" {{ old('postura_ovo_id', $incubacao->postura_ovo_id) == $posturaOvo->id ? 'selected' : '' }}>{{ $posturaOvo->data_postura->format('d/m/Y') }} - {{ $posturaOvo->tipoAve->nome ?? 'N/A' }} ({{ $posturaOvo->quantidade_ovos }} ovos)</option>
+                                                {{-- CORREÇÃO AQUI: Usar optional() para acesso seguro --}}
+                                                <option value="{{ $posturaOvo->id }}" {{ old('postura_ovo_id', $incubacao->postura_ovo_id) == $posturaOvo->id ? 'selected' : '' }}>{{ optional($posturaOvo->data_postura)->format('d/m/Y') ?? 'N/A' }} - {{ $posturaOvo->tipoAve->nome ?? 'N/A' }} ({{ $posturaOvo->quantidade_ovos }} ovos)</option>
                                             @endforeach
                                         </select>
                                         @error('postura_ovo_id')
@@ -285,20 +286,14 @@
             // Chamar a função no carregamento da página para preencher se já houver valores antigos
             // e para garantir que o tempoEclosaoDias seja inicializado se o tipo de ave já estiver selecionado.
             if (tipoAveSelect.value) {
-                // Ao carregar a página, se um tipo de ave já estiver selecionado (e.g., via old() ou do modelo)
-                // precisamos garantir que `tempoEclosaoDias` seja definido antes de `calcularDataPrevistaEclosao`.
                 const initialSelectedOption = tipoAveSelect.options[tipoAveSelect.selectedIndex];
                 const initialTempoEclosaoAttr = initialSelectedOption.dataset.tempoEclosao;
                 if (initialTempoEclosaoAttr) {
                     tempoEclosaoDias = parseInt(initialTempoEclosaoAttr);
-                } else {
-                    // Se não houver data-tempo-eclosao inicial, podemos tentar buscar via AJAX
-                    // ou simplesmente calcular com 0 e o usuário precisará interagir.
-                    // Para evitar um AJAX no load, vamos confiar no data-tempo-eclosao ou no padrão 0.
                 }
-                calcularDataPrevistaEclosao(); // Calcula com o valor inicial
+                calcularDataPrevistaEclosao();
             } else {
-                calcularDataPrevistaEclosao(); // Calcula mesmo sem tipo de ave selecionado (resultará em vazio)
+                calcularDataPrevistaEclosao();
             }
         });
     </script>
