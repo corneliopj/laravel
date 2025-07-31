@@ -9,53 +9,55 @@ class PosturaOvo extends Model
 {
     use HasFactory;
 
-    /**
-     * The table associated with the model.
-     *
-     * @var string
-     */
     protected $table = 'posturas_ovos';
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
+        'lote_id',
+        'tipo_ave_id',
         'acasalamento_id',
-        'data_inicio_postura',
-        'data_fim_postura',
+        'data_postura',
         'quantidade_ovos',
         'observacoes',
-        'encerrada', // NOVO: Adicionado campo 'encerrada'
+        'encerrada', // Reutilizando este campo para status
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
-        'data_inicio_postura' => 'date',
-        'data_fim_postura' => 'date',
-        'encerrada' => 'boolean', // NOVO: Adicionado cast para boolean
+        'data_postura' => 'date',
+        'quantidade_ovos' => 'integer',
+        'encerrada' => 'boolean', // Cast para boolean
     ];
 
     /**
-     * Get the Acasalamento that owns the PosturaOvo.
+     * Get the lote that owns the posturaOvo.
      */
-    public function acasalamento()
+    public function lote()
     {
-        return $this->belongsTo(Acasalamento::class);
+        return $this->belongsTo(Lote::class, 'lote_id');
     }
 
     /**
-     * Get the Incubacoes for the PosturaOvo.
-     *
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
+     * Get the tipoAve that owns the posturaOvo.
      */
-    public function incubacoes()
+    public function tipoAve()
     {
-        return $this->hasMany(Incubacao::class, 'postura_ovo_id');
+        return $this->belongsTo(TipoAve::class, 'tipo_ave_id');
+    }
+
+    /**
+     * Get the acasalamento that owns the posturaOvo.
+     */
+    public function acasalamento()
+    {
+        return $this->belongsTo(Acasalamento::class, 'acasalamento_id');
+    }
+
+    /**
+     * Define um escopo para retornar apenas posturas de ovos ativas (não encerradas).
+     * O nome do método deve começar com 'scope' seguido pelo nome do escopo em CamelCase.
+     * Ex: scopeAtivas -> $query->ativas()
+     */
+    public function scopeAtivas($query)
+    {
+        return $query->where('encerrada', false);
     }
 }
