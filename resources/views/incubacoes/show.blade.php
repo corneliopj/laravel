@@ -53,8 +53,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Postura de Ovo:</label>
-                                    {{-- CORREÇÃO AQUI: Usar operador de coalescência nula --}}
-                                    <p>{{ $incubacao->posturaOvo->data_postura->format('d/m/Y') ?? 'N/A' }}</p>
+                                    {{-- CORREÇÃO AQUI: Usar optional() para acesso seguro --}}
+                                    <p>{{ optional($incubacao->posturaOvo)->data_postura?->format('d/m/Y') ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Data de Entrada na Incubadora:</label>
@@ -124,7 +124,7 @@
         </section>
         <!-- /.content -->
     </div>
-    <!-- /.content-wrapper .. -->
+    <!-- /.content-wrapper -->
     @include('layouts.partials.scripts')
     @include('layouts.partials.footer')
 </div>
