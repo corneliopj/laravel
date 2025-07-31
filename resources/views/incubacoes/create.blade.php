@@ -103,8 +103,8 @@
                                         <select name="postura_ovo_id" id="postura_ovo_id" class="form-control @error('postura_ovo_id') is-invalid @enderror">
                                             <option value="">Selecione uma Postura de Ovo</option>
                                             @foreach($posturasOvos as $posturaOvo)
-                                                {{-- CORREÇÃO AQUI: Usar optional() para acesso seguro --}}
-                                                <option value="{{ $posturaOvo->id }}" {{ old('postura_ovo_id') == $posturaOvo->id ? 'selected' : '' }}>{{ optional($posturaOvo->data_postura)->format('d/m/Y') ?? 'N/A' }} - {{ $posturaOvo->tipoAve->nome ?? 'N/A' }} ({{ $posturaOvo->quantidade_ovos }} ovos)</option>
+                                                {{-- CORREÇÃO AQUI: Usar optional() e data_inicio_postura --}}
+                                                <option value="{{ $posturaOvo->id }}" {{ old('postura_ovo_id') == $posturaOvo->id ? 'selected' : '' }}>{{ optional($posturaOvo->data_inicio_postura)->format('d/m/Y') ?? 'N/A' }} - {{ $posturaOvo->acasalamento->macho->tipoAve->nome ?? 'N/A' }} ({{ $posturaOvo->quantidade_ovos }} ovos)</option>
                                             @endforeach
                                         </select>
                                         @error('postura_ovo_id')
@@ -195,7 +195,7 @@
                     return;
                 }
 
-                const dataEntrada = new Date(dataEntradaStr + 'T00:00:00'); // Adiciona T00:00:00 para evitar problemas de fuso horário
+                const dataEntrada = new Date(dataEntradaStr + 'T00:00:00');
                 if (isNaN(dataEntrada.getTime())) {
                     dataPrevistaEclosaoInput.value = '';
                     return;
@@ -204,7 +204,6 @@
                 const dataPrevista = new Date(dataEntrada);
                 dataPrevista.setDate(dataEntrada.getDate() + tempoEclosaoDias);
 
-                // Formatar a data para 'YYYY-MM-DD'
                 const year = dataPrevista.getFullYear();
                 const month = String(dataPrevista.getMonth() + 1).padStart(2, '0');
                 const day = String(dataPrevista.getDate()).padStart(2, '0');
@@ -217,14 +216,12 @@
                 const tipoAveId = selectedOption.value;
 
                 if (tipoAveId) {
-                    // Tenta obter o tempo de eclosão do atributo data-tempo-eclosao
                     const tempoEclosaoAttr = selectedOption.dataset.tempoEclosao;
                     if (tempoEclosaoAttr) {
                         tempoEclosaoDias = parseInt(tempoEclosaoAttr);
                         console.log(`Tempo de eclosão obtido do atributo: ${tempoEclosaoDias} dias.`);
                         calcularDataPrevistaEclosao();
                     } else {
-                        // Se não estiver no atributo, faz uma requisição AJAX
                         try {
                             const response = await fetch(`/tipos_aves/${tipoAveId}/tempo-eclosao`);
                             if (!response.ok) {
@@ -250,8 +247,6 @@
             // Listener para o campo Data de Entrada na Incubadora
             dataEntradaInput.addEventListener('change', calcularDataPrevistaEclosao);
 
-            // Chamar a função no carregamento da página para preencher se já houver valores antigos
-            // e para garantir que o tempoEclosaoDias seja inicializado se o tipo de ave já estiver selecionado.
             if (tipoAveSelect.value) {
                 const initialSelectedOption = tipoAveSelect.options[tipoAveSelect.selectedIndex];
                 const initialTempoEclosaoAttr = initialSelectedOption.dataset.tempoEclosao;

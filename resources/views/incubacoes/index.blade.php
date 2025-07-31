@@ -130,8 +130,8 @@
                                                     <td>{{ $incubacao->id }}</td>
                                                     <td>{{ $incubacao->tipoAve->nome ?? 'N/A' }}</td>
                                                     <td>{{ $incubacao->lote->identificacao_lote ?? 'N/A' }}</td>
-                                                    {{-- CORREÇÃO AQUI: Usar optional() para acesso seguro --}}
-                                                    <td>{{ optional($incubacao->posturaOvo)->data_postura?->format('d/m/Y') ?? 'N/A' }}</td>
+                                                    {{-- CORREÇÃO AQUI: Usar optional() e data_inicio_postura --}}
+                                                    <td>{{ optional($incubacao->posturaOvo)->data_inicio_postura?->format('d/m/Y') ?? 'N/A' }}</td>
                                                     <td>{{ $incubacao->data_entrada_incubadora->format('d/m/Y') }}</td>
                                                     <td>{{ $incubacao->data_prevista_eclosao->format('d/m/Y') }}</td>
                                                     <td>{{ $incubacao->quantidade_ovos }}</td>

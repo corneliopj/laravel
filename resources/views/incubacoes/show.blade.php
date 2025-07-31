@@ -53,8 +53,8 @@
                                 </div>
                                 <div class="form-group">
                                     <label>Postura de Ovo:</label>
-                                    {{-- CORREÇÃO AQUI: Usar optional() para acesso seguro --}}
-                                    <p>{{ optional($incubacao->posturaOvo)->data_postura?->format('d/m/Y') ?? 'N/A' }}</p>
+                                    {{-- CORREÇÃO AQUI: Usar optional() e data_inicio_postura --}}
+                                    <p>{{ optional($incubacao->posturaOvo)->data_inicio_postura?->format('d/m/Y') ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Data de Entrada na Incubadora:</label>
