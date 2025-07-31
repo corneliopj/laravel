@@ -1,111 +1,127 @@
-    @php
-        $pageTitle = 'Registrar Nova Venda';
-    @endphp
+@php
+    $pageTitle = 'Registrar Nova Venda';
+@endphp
 
-    @include('layouts.partials.head')
+@include('layouts.partials.head')
 
-    <div class="wrapper">
-        @include('layouts.partials.navbar')
-        @include('layouts.partials.sidebar')
+<div class="wrapper">
+    @include('layouts.partials.navbar')
+    @include('layouts.partials.sidebar')
 
-        <!-- Content Wrapper. Contains page content -->
-        <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-            <!-- Content Header (Page header) -->
-            <section class="content-header">
-                <div class="container-fluid">
-                    <div class="row mb-2">
-                        <div class="col-sm-6">
-                            <h1>Registrar Nova Venda</h1>
-                        </div>
-                        <div class="col-sm-6">
-                            <ol class="breadcrumb float-sm-right">
-                                <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
-                                <li class="breadcrumb-item"><a href="{{ route('financeiro.vendas.index') }}">Vendas</a></li>
-                                <li class="breadcrumb-item active">Registrar</li>
-                            </ol>
-                        </div>
+    <!-- Content Wrapper. Contains page content -->
+    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
+        <!-- Content Header (Page header) -->
+        <section class="content-header">
+            <div class="container-fluid">
+                <div class="row mb-2">
+                    <div class="col-sm-6">
+                        <h1>Registrar Nova Venda</h1>
                     </div>
-                </div><!-- /.container-fluid -->
-            </section>
+                    <div class="col-sm-6">
+                        <ol class="breadcrumb float-sm-right">
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}">Home</a></li>
+                            <li class="breadcrumb-item"><a href="{{ route('financeiro.vendas.index') }}">Vendas</a></li>
+                            <li class="breadcrumb-item active">Registrar</li>
+                        </ol>
+                    </div>
+                </div>
+            </div><!-- /.container-fluid -->
+        </section>
 
-            <!-- Main content -->
-            <section class="content">
-                <div class="container-fluid">
-                    <div class="row">
-                        <div class="col-md-10 offset-md-1">
-                            <div class="card card-success">
-                                <div class="card-header">
-                                    <h3 class="card-title">Dados da Venda</h3>
-                                </div>
-                                <!-- /.card-header -->
-                                <!-- form start -->
-                                <form action="{{ route('financeiro.vendas.store') }}" method="POST">
-                                    @csrf
-                                    <div class="card-body">
-                                        {{-- Mensagens de sucesso/erro --}}
-                                        @if (session('success'))
-                                            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                                                {{ session('success') }}
-                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                        @endif
-                                        @if (session('error'))
-                                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                                {{ session('error') }}
-                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                        @endif
-                                        @if ($errors->any())
-                                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                                <ul>
-                                                    @foreach ($errors->all() as $error)
-                                                        <li>{{ $error }}</li>
-                                                    @endforeach
-                                                </ul>
-                                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                                    <span aria-hidden="true">&times;</span>
-                                                </button>
-                                            </div>
-                                        @endif
-
-                                        <div class="form-group">
-                                            <label for="data_venda">Data da Venda</label>
-                                            <input type="date" name="data_venda" id="data_venda" class="form-control @error('data_venda') is-invalid @enderror" value="{{ old('data_venda', date('Y-m-d')) }}" required>
-                                            @error('data_venda')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+        <!-- Main content -->
+        <section class="content">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-10 offset-md-1">
+                        <div class="card card-success">
+                            <div class="card-header">
+                                <h3 class="card-title">Dados da Venda</h3>
+                            </div>
+                            <!-- /.card-header -->
+                            <!-- form start -->
+                            <form action="{{ route('financeiro.vendas.store') }}" method="POST">
+                                @csrf
+                                <div class="card-body">
+                                    {{-- Mensagens de sucesso/erro --}}
+                                    @if (session('success'))
+                                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                            {{ session('success') }}
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="comprador">Comprador</label>
-                                            <input type="text" name="comprador" id="comprador" class="form-control @error('comprador') is-invalid @enderror" value="{{ old('comprador') }}" placeholder="Nome do comprador ou empresa">
-                                            @error('comprador')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                    @endif
+                                    @if (session('error'))
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            {{ session('error') }}
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                <span aria-hidden="true">&times;</span>
+                                            </button>
                                         </div>
-                                        <div class="form-group">
-                                            <label for="metodo_pagamento">Método de Pagamento</label>
-                                            <select name="metodo_pagamento" id="metodo_pagamento" class="form-control @error('metodo_pagamento') is-invalid @enderror">
-                                                <option value="">Selecione</option>
-                                                @foreach ($metodosPagamento as $key => $value)
-                                                    <option value="{{ $key }}" {{ old('metodo_pagamento') == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                    @endif
+                                    @if ($errors->any())
+                                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                            <ul>
+                                                @foreach ($errors->all() as $error)
+                                                    <li>{{ $error }}</li>
                                                 @endforeach
-                                            </select>
-                                            @error('metodo_pagamento')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="desconto">Desconto (R$)</label>
-                                            <input type="number" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', 0) }}" min="0" step="0.01">
-                                            @error('desconto')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
-                                        </div>
+                                            </ul>
+                                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                                    <span aria-hidden="true">&times;</span>
+                                                </button>
+                                            </div>
+                                        @endif
 
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="data_venda">Data da Venda</label>
+                                                    <input type="date" name="data_venda" id="data_venda" class="form-control @error('data_venda') is-invalid @enderror" value="{{ old('data_venda', date('Y-m-d')) }}" required>
+                                                    @error('data_venda')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="comprador">Comprador</label>
+                                                    <input type="text" name="comprador" id="comprador" class="form-control @error('comprador') is-invalid @enderror" value="{{ old('comprador') }}" placeholder="Nome do comprador ou empresa">
+                                                    @error('comprador')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="metodo_pagamento">Método de Pagamento</label>
+                                                    <select name="metodo_pagamento" id="metodo_pagamento" class="form-control @error('metodo_pagamento') is-invalid @enderror">
+                                                        <option value="">Selecione</option>
+                                                        @foreach ($metodosPagamento as $key => $value)
+                                                            <option value="{{ $key }}" {{ old('metodo_pagamento') == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    @error('metodo_pagamento')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="desconto">Desconto (R$)</label>
+                                                    <input type="number" name="desconto" id="desconto" class="form-control @error('desconto') is-invalid @enderror" value="{{ old('desconto', 0) }}" min="0" step="0.01">
+                                                    @error('desconto')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-group">
+                                                    <label for="comissao_percentual">Comissão (%)</label>
+                                                    <input type="number" name="comissao_percentual" id="comissao_percentual" class="form-control @error('comissao_percentual') is-invalid @enderror" value="{{ old('comissao_percentual', 0) }}" min="0" max="100" step="0.01">
+                                                    @error('comissao_percentual')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Valor da Comissão (R$)</label>
+                                                    <p id="valor_comissao_display" class="form-control-static">R$ 0,00</p>
+                                                </div>
+                                            </div>
+                                        </div>
 
                                         <hr>
                                         <h4>Itens da Venda</h4>
@@ -154,6 +170,10 @@
                                                     <span id="desconto_display">R$ 0,00</span>
                                                 </div>
                                                 <div class="d-flex justify-content-between">
+                                                    <strong>Comissão:</strong>
+                                                    <span id="comissao_display">R$ 0,00</span>
+                                                </div>
+                                                <div class="d-flex justify-content-between">
                                                     <h4><strong>Valor Final:</strong></h4>
                                                     <h4><strong id="valor_final_display">R$ 0,00</strong></h4>
                                                 </div>
@@ -185,6 +205,7 @@
                 const itemsContainer = document.getElementById('items_container');
                 const addItemBtn = document.getElementById('add_item_btn');
                 const descontoInput = document.getElementById('desconto');
+                const percentualComissaoInput = document.getElementById('comissao_percentual'); // NOVO
 
                 function initializeItemRow(rowElement) {
                     const tipoItemRadios = rowElement.querySelectorAll('input[name$="[tipo_item]"]');
@@ -266,14 +287,19 @@
                     });
 
                     const desconto = parseFloat(descontoInput.value) || 0;
+                    const percentualComissao = parseFloat(percentualComissaoInput.value) || 0; // NOVO: Obter percentual
                     let valorFinal = subtotal - desconto;
 
                     if (valorFinal < 0) {
                         valorFinal = 0; // Garante que o valor final não seja negativo
                     }
 
+                    const valorComissao = (valorFinal * percentualComissao) / 100; // NOVO: Calcular valor da comissão
+
                     document.getElementById('subtotal_display').innerText = `R$ ${subtotal.toFixed(2).replace('.', ',')}`;
                     document.getElementById('desconto_display').innerText = `R$ ${desconto.toFixed(2).replace('.', ',')}`;
+                    document.getElementById('comissao_display').innerText = `R$ ${valorComissao.toFixed(2).replace('.', ',')}`; // NOVO: Exibir comissão
+                    document.getElementById('valor_comissao_display').innerText = `R$ ${valorComissao.toFixed(2).replace('.', ',')}`; // NOVO: Exibir comissão no campo estático
                     document.getElementById('valor_final_display').innerText = `R$ ${valorFinal.toFixed(2).replace('.', ',')}`;
                 }
 
@@ -317,8 +343,9 @@
                     });
                 });
 
-                // Listener para o campo de desconto
+                // Listener para os campos de desconto e percentual de comissão
                 descontoInput.addEventListener('input', updateTotals);
+                percentualComissaoInput.addEventListener('input', updateTotals); // NOVO: Listener para comissão
 
                 // Garante que os totais são calculados na carga da página
                 updateTotals();
@@ -326,4 +353,3 @@
         </script>
     </div>
     <!-- ./wrapper -->
-    
