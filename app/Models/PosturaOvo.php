@@ -12,49 +12,39 @@ class PosturaOvo extends Model
     protected $table = 'posturas_ovos';
 
     protected $fillable = [
-        'lote_id',
-        'tipo_ave_id',
         'acasalamento_id',
-        'data_postura',
+        'data_inicio_postura', // Nome correto da coluna de data
+        'data_fim_postura',
         'quantidade_ovos',
         'observacoes',
-        'encerrada', // Reutilizando este campo para status
+        'encerrada', // Campo para indicar se a postura está ativa/encerrada
     ];
 
     protected $casts = [
-        'data_postura' => 'date',
+        'data_inicio_postura' => 'date', // Cast para o nome correto da coluna
+        'data_fim_postura' => 'date',
         'quantidade_ovos' => 'integer',
         'encerrada' => 'boolean', // Cast para boolean
     ];
 
     /**
-     * Get the lote that owns the posturaOvo.
-     */
-    public function lote()
-    {
-        return $this->belongsTo(Lote::class, 'lote_id');
-    }
-
-    /**
-     * Get the tipoAve that owns the posturaOvo.
-     */
-    public function tipoAve()
-    {
-        return $this->belongsTo(TipoAve::class, 'tipo_ave_id');
-    }
-
-    /**
-     * Get the acasalamento that owns the posturaOvo.
+     * Get the Acasalamento that owns the PosturaOvo.
      */
     public function acasalamento()
     {
-        return $this->belongsTo(Acasalamento::class, 'acasalamento_id');
+        return $this->belongsTo(Acasalamento::class);
+    }
+
+    /**
+     * Get the Incubacoes for the PosturaOvo.
+     */
+    public function incubacoes()
+    {
+        return $this->hasMany(Incubacao::class, 'postura_ovo_id');
     }
 
     /**
      * Define um escopo para retornar apenas posturas de ovos ativas (não encerradas).
-     * O nome do método deve começar com 'scope' seguido pelo nome do escopo em CamelCase.
-     * Ex: scopeAtivas -> $query->ativas()
      */
     public function scopeAtivas($query)
     {
