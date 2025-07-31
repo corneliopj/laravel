@@ -80,7 +80,7 @@
                                                 <label for="tipo_ave_id">Tipo de Ave</label>
                                                 <select name="tipo_ave_id" id="tipo_ave_id" class="form-control">
                                                     <option value="">Todos</option>
-                                                    @foreach($tiposAves as $tipoAve) {{-- CORREÇÃO AQUI: $tiposAves --}}
+                                                    @foreach($tiposAves as $tipoAve)
                                                         <option value="{{ $tipoAve->id }}" {{ request('tipo_ave_id') == $tipoAve->id ? 'selected' : '' }}>{{ $tipoAve->nome }}</option>
                                                     @endforeach
                                                 </select>
@@ -130,6 +130,7 @@
                                                     <td>{{ $incubacao->id }}</td>
                                                     <td>{{ $incubacao->tipoAve->nome ?? 'N/A' }}</td>
                                                     <td>{{ $incubacao->lote->identificacao_lote ?? 'N/A' }}</td>
+                                                    {{-- CORREÇÃO AQUI: Usar operador de coalescência nula --}}
                                                     <td>{{ $incubacao->posturaOvo->data_postura->format('d/m/Y') ?? 'N/A' }}</td>
                                                     <td>{{ $incubacao->data_entrada_incubadora->format('d/m/Y') }}</td>
                                                     <td>{{ $incubacao->data_prevista_eclosao->format('d/m/Y') }}</td>

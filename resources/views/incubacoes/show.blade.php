@@ -40,24 +40,21 @@
                             <!-- /.card-header -->
                             <div class="card-body">
                                 <div class="form-group">
-                                    <label>ID:</label>
+                                    <label>ID da Incubação:</label>
                                     <p>{{ $incubacao->id }}</p>
-                                </div>
-                                <div class="form-group">
-                                    <label>Lote de Ovos:</label>
-                                    <p>{{ $incubacao->lote->identificacao_lote ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Tipo de Ave:</label>
                                     <p>{{ $incubacao->tipoAve->nome ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Chocadeira:</label>
-                                    <p>{{ $incubacao->chocadeira }}</p>
+                                    <label>Lote de Ovos:</label>
+                                    <p>{{ $incubacao->lote->identificacao_lote ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Quantidade de Ovos:</label>
-                                    <p>{{ $incubacao->quantidade_ovos }}</p>
+                                    <label>Postura de Ovo:</label>
+                                    {{-- CORREÇÃO AQUI: Usar operador de coalescência nula --}}
+                                    <p>{{ $incubacao->posturaOvo->data_postura->format('d/m/Y') ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Data de Entrada na Incubadora:</label>
@@ -67,40 +64,46 @@
                                     <label>Data Prevista de Eclosão:</label>
                                     <p>{{ $incubacao->data_prevista_eclosao->format('d/m/Y') }}</p>
                                 </div>
-                                <hr>
-                                <h5>Resultados da Incubação</h5>
                                 <div class="form-group">
-                                    <label>Quantidade de Eclodidos:</label>
+                                    <label>Quantidade de Ovos:</label>
+                                    <p>{{ $incubacao->quantidade_ovos }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantidade Eclodidos:</label>
                                     <p>{{ $incubacao->quantidade_eclodidos ?? 'Não informado' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Quantidade de Inférteis:</label>
+                                    <label>Quantidade Infértil:</label>
                                     <p>{{ $incubacao->quantidade_inferteis ?? 'Não informado' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Quantidade de Mortos (no ovo):</label>
+                                    <label>Quantidade Infectados:</label>
+                                    <p>{{ $incubacao->quantidade_infectados ?? 'Não informado' }}</p>
+                                </div>
+                                <div class="form-group">
+                                    <label>Quantidade Mortos:</label>
                                     <p>{{ $incubacao->quantidade_mortos ?? 'Não informado' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Quantidade de Infectados:</label>
-                                    <p>{{ $incubacao->quantidade_infectados ?? 'Não informado' }}</p>
+                                    <label>Chocadeira:</label>
+                                    <p>{{ $incubacao->chocadeira ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
                                     <label>Observações:</label>
                                     <p>{{ $incubacao->observacoes ?? 'N/A' }}</p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Incubação Ativa:</label>
+                                    <label>Status:</label>
                                     <p>
                                         @if ($incubacao->ativo)
-                                            <span class="badge badge-success">Sim</span>
+                                            <span class="badge badge-success">Ativo</span>
                                         @else
-                                            <span class="badge badge-danger">Não</span>
+                                            <span class="badge badge-danger">Inativo</span>
                                         @endif
                                     </p>
                                 </div>
                                 <div class="form-group">
-                                    <label>Criado em:</label>
+                                    <label>Registrado em:</label>
                                     <p>{{ $incubacao->created_at->format('d/m/Y H:i:s') }}</p>
                                 </div>
                                 <div class="form-group">
