@@ -6,7 +6,7 @@ use App\Models\Incubacao;
 use App\Models\Ave;
 use App\Models\TipoAve;
 use App\Models\Lote;
-use App\Models\PosturaOvo;
+use App\Models\PosturaOvo; // Certifique-se de que o modelo PosturaOvo está importado
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -57,7 +57,8 @@ class IncubacaoController extends Controller
     {
         $tiposAves = TipoAve::orderBy('nome')->get();
         $lotes = Lote::where('ativo', true)->orderBy('identificacao_lote')->get();
-        $posturasOvos = PosturaOvo::where('ativo', true)->orderBy('data_postura', 'desc')->get();
+        // CORREÇÃO AQUI: Usar o escopo 'ativas' do modelo PosturaOvo
+        $posturasOvos = PosturaOvo::ativas()->orderBy('data_postura', 'desc')->get();
 
         return view('incubacoes.create', compact('tiposAves', 'lotes', 'posturasOvos'));
     }
@@ -89,7 +90,7 @@ class IncubacaoController extends Controller
                 'tipo_ave_id' => $request->tipo_ave_id,
                 'postura_ovo_id' => $request->postura_ovo_id,
                 'data_entrada_incubadora' => $request->data_entrada_incubadora,
-                'data_prevista_eclosao' => $dataPrevistaEclosao, // Usando o cálculo dinâmico
+                'data_prevista_eclosao' => $dataPrevistaEclosao,
                 'quantidade_ovos' => $request->quantidade_ovos,
                 'chocadeira' => $request->chocadeira,
                 'observacoes' => $request->observacoes,
@@ -119,7 +120,8 @@ class IncubacaoController extends Controller
     {
         $tiposAves = TipoAve::orderBy('nome')->get();
         $lotes = Lote::where('ativo', true)->orderBy('identificacao_lote')->get();
-        $posturasOvos = PosturaOvo::where('ativo', true)->orderBy('data_postura', 'desc')->get();
+        // CORREÇÃO AQUI: Usar o escopo 'ativas' do modelo PosturaOvo
+        $posturasOvos = PosturaOvo::ativas()->orderBy('data_postura', 'desc')->get();
 
         return view('incubacoes.edit', compact('incubacao', 'tiposAves', 'lotes', 'posturasOvos'));
     }
@@ -146,7 +148,7 @@ class IncubacaoController extends Controller
 
         try {
             $tipoAve = TipoAve::findOrFail($request->tipo_ave_id);
-            $tempoEclosao = $tipoAve->tempo_eclosao ?? 21; // Pega o tempo_eclosao do tipo de ave, padrão 21 dias
+            $tempoEclosao = $tipoAve->tempo_eclosao ?? 21;
 
             $dataPrevistaEclosao = Carbon::parse($request->data_entrada_incubadora)->addDays($tempoEclosao);
 
@@ -155,7 +157,7 @@ class IncubacaoController extends Controller
                 'tipo_ave_id' => $request->tipo_ave_id,
                 'postura_ovo_id' => $request->postura_ovo_id,
                 'data_entrada_incubadora' => $request->data_entrada_incubadora,
-                'data_prevista_eclosao' => $dataPrevistaEclosao, // Usando o cálculo dinâmico
+                'data_prevista_eclosao' => $dataPrevistaEclosao,
                 'quantidade_ovos' => $request->quantidade_ovos,
                 'quantidade_eclodidos' => $request->quantidade_eclodidos,
                 'quantidade_inferteis' => $request->quantidade_inferteis,
