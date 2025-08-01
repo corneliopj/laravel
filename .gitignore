@@ -21,3 +21,5 @@ yarn-error.log
 /.nova
 /.vscode
 /.zed
+GUIA_IMPLEMENTACAO_PASSO_A_PASSO.md
+validacao_funcionalidades.md

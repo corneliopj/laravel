@@ -33,6 +33,75 @@
         <!-- Main content -->
         <section class="content">
             <div class="container-fluid">
+                {{-- Filtros Dinâmicos --}}
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <div class="card card-primary card-outline collapsed-card">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-filter"></i>
+                                    Filtros de Período
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body" style="display: none;">
+                                <form method="GET" action="{{ route(\'dashboard\') }}" id="filtros-form">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="ano">Ano:</label>
+                                                <select name="ano" id="ano" class="form-control">
+                                                    @for ($y = Carbon\Carbon::now()->year; $y >= 2020; $y--)
+                                                        <option value="{{ $y }}" {{ $ano == $y ? \'selected\' : \'\' }}>{{ $y }}</option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="trimestre">Trimestre:</label>
+                                                <select name="trimestre" id="trimestre" class="form-control">
+                                                    <option value="">Todos</option>
+                                                    <option value="1" {{ $trimestre == \'1\' ? \'selected\' : \'\' }}>1º Trimestre</option>
+                                                    <option value="2" {{ $trimestre == \'2\' ? \'selected\' : \'\' }}>2º Trimestre</option>
+                                                    <option value="3" {{ $trimestre == \'3\' ? \'selected\' : \'\' }}>3º Trimestre</option>
+                                                    <option value="4" {{ $trimestre == \'4\' ? \'selected\' : \'\' }}>4º Trimestre</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="mes">Mês:</label>
+                                                <select name="mes" id="mes" class="form-control">
+                                                    <option value="">Todos</option>
+                                                    @for ($m = 1; $m <= 12; $m++)
+                                                        <option value="{{ $m }}" {{ $mes == $m ? \'selected\' : \'\' }}>
+                                                            {{ Carbon\Carbon::create(null, $m, 1)->monthName }}
+                                                        </option>
+                                                    @endfor
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3 d-flex align-items-end">
+                                            <div class="form-group">
+                                                <button type="submit" class="btn btn-primary">
+                                                    <i class="fas fa-sync-alt"></i> Atualizar
+                                                </button>
+                                                <button type="button" class="btn btn-secondary ml-2" onclick="limparFiltros()">
+                                                    <i class="fas fa-eraser"></i> Limpar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <!-- Small boxes (Stat box) -->
                 <div class="row">
                     {{-- NOVO: Total Geral de Aves (Individuais + Plantéis) --}}
@@ -167,6 +236,161 @@
                     <!-- ./col -->
                 </div>
                 <!-- /.row -->
+
+                {{-- Seção KPIs Visuais --}}
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card card-success card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                    Indicadores de Performance (KPIs)
+                                </h3>
+                                <div class="card-tools">
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <div id="gaugeTaxaEclosao" style="width: 200px; height: 160px; margin: 0 auto;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <div id="gaugeTaxaFertilidade" style="width: 200px; height: 160px; margin: 0 auto;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <div id="gaugeMelhorChocadeira" style="width: 200px; height: 160px; margin: 0 auto;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="text-center">
+                                            <div id="gaugeMediaOvos" style="width: 200px; height: 160px; margin: 0 auto;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Seção Previsão de Eclosão --}}
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="card card-warning card-outline">
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Previsão de Eclosão - Próximos 30 Dias
+                                </h3>
+                                <div class="card-tools">
+                                    <span class="badge badge-warning">{{ count($previsoesEclosao) }} incubações</span>
+                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                        <i class="fas fa-minus"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                @if(count($previsoesEclosao) > 0)
+                                    <div class="row">
+                                        @foreach($previsoesEclosao as $previsao)
+                                            <div class="col-md-6 col-lg-4 mb-3">
+                                                <div class="card card-outline 
+                                                    @if($previsao['status'] == 'urgente') card-danger 
+                                                    @elseif($previsao['status'] == 'proximo') card-warning 
+                                                    @elseif($previsao['status'] == 'atrasado') card-dark 
+                                                    @else card-info @endif">
+                                                    <div class="card-header">
+                                                        <h5 class="card-title mb-0">
+                                                            <i class="fas fa-egg"></i>
+                                                            {{ $previsao['lote'] }} - {{ $previsao['tipo_ave'] }}
+                                                        </h5>
+                                                        <div class="card-tools">
+                                                            <span class="badge 
+                                                                @if($previsao['status'] == 'urgente') badge-danger 
+                                                                @elseif($previsao['status'] == 'proximo') badge-warning 
+                                                                @elseif($previsao['status'] == 'atrasado') badge-dark 
+                                                                @else badge-info @endif">
+                                                                @if($previsao['status'] == 'urgente') URGENTE
+                                                                @elseif($previsao['status'] == 'proximo') PRÓXIMO
+                                                                @elseif($previsao['status'] == 'atrasado') ATRASADO
+                                                                @else NORMAL @endif
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-6">
+                                                                <strong>Data Eclosão:</strong><br>
+                                                                <span class="text-primary">{{ $previsao['data_eclosao'] }}</span>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <strong>Dias Restantes:</strong><br>
+                                                                <span class="text-danger">{{ $previsao['dias_restantes'] }} dias</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="row mt-2">
+                                                            <div class="col-6">
+                                                                <strong>Ovos:</strong><br>
+                                                                <span class="text-success">{{ $previsao['quantidade_ovos'] }}</span>
+                                                            </div>
+                                                            <div class="col-6">
+                                                                <strong>Chocadeira:</strong><br>
+                                                                <span class="text-info">{{ $previsao['chocadeira'] }}</span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mt-3">
+                                                            <strong>Progresso da Incubação:</strong>
+                                                            <div class="progress mt-1">
+                                                                <div class="progress-bar 
+                                                                    @if($previsao['progresso'] >= 90) bg-success 
+                                                                    @elseif($previsao['progresso'] >= 70) bg-warning 
+                                                                    @else bg-info @endif" 
+                                                                    role="progressbar" 
+                                                                    style="width: {{ $previsao['progresso'] }}%" 
+                                                                    aria-valuenow="{{ $previsao['progresso'] }}" 
+                                                                    aria-valuemin="0" 
+                                                                    aria-valuemax="100">
+                                                                    {{ $previsao['progresso'] }}%
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        @if($previsao['temperatura_atual'] > 0 || $previsao['umidade_atual'] > 0)
+                                                            <div class="row mt-2">
+                                                                <div class="col-6">
+                                                                    <small><strong>Temp:</strong> {{ $previsao['temperatura_atual'] }}°C</small>
+                                                                </div>
+                                                                <div class="col-6">
+                                                                    <small><strong>Umidade:</strong> {{ $previsao['umidade_atual'] }}%</small>
+                                                                </div>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                    <div class="card-footer">
+                                                        <a href="{{ route('incubacoes.show', $previsao['id']) }}" class="btn btn-sm btn-primary">
+                                                            <i class="fas fa-eye"></i> Ver Detalhes
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @else
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Não há eclosões previstas para os próximos 30 dias.
+                                    </div>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Main row for Charts and Tables -->
                 <div class="row">
@@ -731,4 +955,81 @@
         });
 
     });
+
+    // NOVO: Renderização dos KPIs Visuais (Gauges)
+    function renderGauge(elementId, value, label, max = 100) {
+        const gaugeElement = document.getElementById(elementId);
+        if (!gaugeElement) return;
+
+        const gauge = new JustGage({
+            id: elementId,
+            value: value,
+            min: 0,
+            max: max,
+            label: label,
+            pointer: true,
+            gaugeWidthScale: 0.6,
+            counter: true,
+            relativeGaugeSize: true,
+            levelColors: [
+                "#ff0000", // red
+                "#f9c802", // yellow
+                "#a9d70b"  // green
+            ],
+            customSectors: [
+                { color: "#ff0000", lo: 0, hi: 50 },
+                { color: "#f9c802", lo: 51, hi: 75 },
+                { color: "#a9d70b", lo: 76, hi: 100 }
+            ],
+            valueFontColor: '#343a40',
+            labelFontColor: '#6c757d',
+            pointerOptions: {
+                toplength: -15,
+                bottomlength: 10,
+                bottomwidth: 12,
+                color: '#8e8e93',
+                stroke: '#ffffff',
+                stroke_width: 3,
+                stroke_linecap: 'round'
+            },
+            shadowOpacity: 0.5,
+            shadowSize: 5,
+            shadowVerticalOffset: 2
+        });
+    }
+
+    // Renderizar os gauges com os dados do Laravel
+    document.addEventListener('DOMContentLoaded', function() {
+        renderGauge('gaugeTaxaEclosao', @json($kpis['taxa_eclosao_30_dias']), 'Taxa Eclosão (30D)');
+        renderGauge('gaugeTaxaFertilidade', @json($kpis['taxa_fertilidade']), 'Taxa Fertilidade');
+        renderGauge('gaugeMelhorChocadeira', @json($kpis['melhor_chocadeira_eficiencia']), 'Melhor Chocadeira');
+        renderGauge('gaugeMediaOvos', @json($kpis['media_ovos_incubacao']), 'Média Ovos/Incub.', 50); // Max 50 para ovos
+    });
+
+    // Função para limpar os filtros
+    function limparFiltros() {
+        document.getElementById('ano').value = '';
+        document.getElementById('trimestre').value = '';
+        document.getElementById('mes').value = '';
+        document.getElementById('filtros-form').submit();
+    }
 </script>
+
+<!-- JustGage library for gauges -->
+<script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/justgage@1.4.0/justgage.js"></script>
+
+@push('styles')
+<style>
+    .kpi-gauge {
+        margin: 0 auto;
+        text-align: center;
+    }
+    .previsao-card {
+        transition: transform 0.2s;
+    }
+    .previsao-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+@endpush
