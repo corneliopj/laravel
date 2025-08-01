@@ -5,7 +5,9 @@
 @include('layouts.partials.head')
 
 <div class="wrapper">
+    {{-- Inclui o partial navbar --}}
     @include('layouts.partials.navbar')
+    {{-- Inclui o partial sidebar --}}
     @include('layouts.partials.sidebar')
 
     <!-- Content Wrapper. Contains page content -->

@@ -69,3 +69,23 @@ function initPWA() {
     console.log('PWA foi instalado');
   });
 }
+document.addEventListener('DOMContentLoaded', function() {
+    // Corrige o menu toggle para mobile
+    const pushMenuBtn = document.querySelector('[data-widget="pushmenu"]');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (pushMenuBtn && sidebar) {
+        // Remove o handler padrão do AdminLTE
+        pushMenuBtn.replaceWith(pushMenuBtn.cloneNode(true));
+        const newPushMenuBtn = document.querySelector('[data-widget="pushmenu"]');
+        
+        // Adiciona nosso handler personalizado
+        newPushMenuBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            sidebar.classList.toggle('sidebar-open');
+            
+            // Força o redesenho para garantir a animação
+            void sidebar.offsetWidth;
+        });
+    }
+});
