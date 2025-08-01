@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Financeiro;
 use App\Http\Controllers\Controller;
 use App\Models\Despesa;
 use App\Models\Receita;
+use App\Models\Venda;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -26,9 +27,6 @@ class FinanceiroDashboardController extends Controller
         $top5Despesas = $this->getTop5Despesas($ano, $mes);
         $top5Receitas = $this->getTop5Receitas($ano, $mes);
         
-        // Fluxo de caixa futuro (será implementado na FASE 5)
-        $fluxoCaixaFuturo = [];
-        
         return view('financeiro.dashboard', compact(
             'dadosGraficoLinha',
             'dadosGraficoBarras',
@@ -36,7 +34,6 @@ class FinanceiroDashboardController extends Controller
             'dadosComparativo',
             'top5Despesas',
             'top5Receitas',
-            'fluxoCaixaFuturo',
             'ano',
             'mes'
         ));
@@ -44,15 +41,12 @@ class FinanceiroDashboardController extends Controller
 
     private function getDadosGraficoLinha($ano, $mes)
     {
-        // Implementação existente do gráfico de linhas
         $dados = [];
         $meses = [];
         
         for ($i = 1; $i <= 12; $i++) {
             $meses[] = Carbon::create($ano, $i, 1)->format('M');
-            $dados['receitas'][] = Receita::whereYear('data', $ano)
-                ->whereMonth('data', $i)
-                ->sum('valor');
+            $dados['receitas'][] = $this->getTotalReceitas($ano, $i);
             $dados['despesas'][] = Despesa::whereYear('data', $ano)
                 ->whereMonth('data', $i)
                 ->sum('valor');
@@ -62,7 +56,7 @@ class FinanceiroDashboardController extends Controller
             'labels' => $meses,
             'datasets' => [
                 [
-                    'label' => 'Receitas',
+                    'label' => 'Receitas (Total)',
                     'data' => $dados['receitas'],
                     'backgroundColor' => 'rgba(40, 167, 69, 0.2)',
                     'borderColor' => 'rgba(40, 167, 69, 1)',
@@ -83,7 +77,6 @@ class FinanceiroDashboardController extends Controller
 
     private function getDadosGraficoBarras($ano, $mes)
     {
-        // Implementação existente do gráfico de barras
         $categoriasReceitas = Receita::with('categoria')
             ->selectRaw('categoria_id, SUM(valor) as total')
             ->whereYear('data', $ano)
@@ -116,11 +109,7 @@ class FinanceiroDashboardController extends Controller
 
     private function getDadosGraficoPizza($ano, $mes)
     {
-        // Implementação existente do gráfico de pizza
-        $receitas = Receita::whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->sum('valor');
-            
+        $receitas = $this->getTotalReceitas($ano, $mes);
         $despesas = Despesa::whereYear('data', $ano)
             ->whereMonth('data', $mes)
             ->sum('valor');
@@ -134,16 +123,10 @@ class FinanceiroDashboardController extends Controller
         ];
     }
 
-    /**
-     * Obter dados comparativos de períodos
-     */
     private function getDadosComparativo(int $ano, int $mes): array
     {
         // Período atual
-        $receitasAtual = Receita::whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->sum('valor');
-        
+        $receitasAtual = $this->getTotalReceitas($ano, $mes);
         $despesasAtual = Despesa::whereYear('data', $ano)
             ->whereMonth('data', $mes)
             ->sum('valor');
@@ -152,10 +135,7 @@ class FinanceiroDashboardController extends Controller
         
         // Mês anterior
         $dataAnterior = Carbon::create($ano, $mes, 1)->subMonth();
-        $receitasAnterior = Receita::whereYear('data', $dataAnterior->year)
-            ->whereMonth('data', $dataAnterior->month)
-            ->sum('valor');
-        
+        $receitasAnterior = $this->getTotalReceitas($dataAnterior->year, $dataAnterior->month);
         $despesasAnterior = Despesa::whereYear('data', $dataAnterior->year)
             ->whereMonth('data', $dataAnterior->month)
             ->sum('valor');
@@ -164,10 +144,7 @@ class FinanceiroDashboardController extends Controller
         
         // Mesmo mês do ano anterior
         $anoAnterior = $ano - 1;
-        $receitasAnoAnterior = Receita::whereYear('data', $anoAnterior)
-            ->whereMonth('data', $mes)
-            ->sum('valor');
-        
+        $receitasAnoAnterior = $this->getTotalReceitas($anoAnterior, $mes);
         $despesasAnoAnterior = Despesa::whereYear('data', $anoAnterior)
             ->whereMonth('data', $mes)
             ->sum('valor');
@@ -215,9 +192,6 @@ class FinanceiroDashboardController extends Controller
         ];
     }
 
-    /**
-     * Calcular variação percentual
-     */
     private function calcularVariacao(float $atual, float $anterior): array
     {
         if ($anterior == 0) {
@@ -235,9 +209,6 @@ class FinanceiroDashboardController extends Controller
         ];
     }
 
-    /**
-     * Obter top 5 despesas do mês
-     */
     private function getTop5Despesas(int $ano, int $mes): array
     {
         $despesas = Despesa::select('descricao', 'categoria_id')
@@ -273,9 +244,6 @@ class FinanceiroDashboardController extends Controller
         ];
     }
 
-    /**
-     * Obter top 5 receitas do mês
-     */
     private function getTop5Receitas(int $ano, int $mes): array
     {
         $receitas = Receita::select('descricao', 'categoria_id')
@@ -309,5 +277,22 @@ class FinanceiroDashboardController extends Controller
             'receitas' => $receitasFormatadas->toArray(),
             'total_periodo' => $totalPeriodo
         ];
+    }
+
+    /**
+     * Calcula o total de receitas incluindo vendas
+     */
+    private function getTotalReceitas(int $ano, int $mes): float
+    {
+        $receitas = Receita::whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
+            
+        $vendas = Venda::whereYear('data_venda', $ano)
+            ->whereMonth('data_venda', $mes)
+            ->where('status', 'concluida')
+            ->sum('valor_final');
+            
+        return $receitas + $vendas;
     }
 }
