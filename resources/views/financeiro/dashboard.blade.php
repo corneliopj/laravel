@@ -10,9 +10,7 @@
     @include('layouts.partials.navbar')
     {{-- Inclui o partial sidebar --}}
     @include('layouts.partials.sidebar')
-@php
-    $saldoTotal = $saldoTotal ?? ($dadosComparativo['periodo_atual']['saldo'] ?? 0);
-@endphp
+
     <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper">
         <!-- Content Header (Page header) -->
@@ -92,7 +90,9 @@
                         </div>
                     </div>
                 </div>
-
+@php
+    $saldoTotal = $saldoTotal ?? ($dadosComparativo['periodo_atual']['saldo'] ?? 0);
+@endphp
                 {{-- Seção de Comparativo de Períodos --}}
                 <div class="row mb-4">
                     <div class="col-md-12">
