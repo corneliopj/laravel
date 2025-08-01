@@ -27,6 +27,12 @@ class DashboardController extends Controller
         // 1. Quantidade Total de Aves Ativas (Individuais)
         $totalAvesAtivas = Ave::where('ativo', 1)->count(); // Variável que faltou no compact
 
+        // Calcular KPIs de performance
+        $kpis = $this->calcularKPIs();
+        
+        // Obter previsões de eclosão
+        $previsoesEclosao = $this->obterPrevisoesEclosao();
+
         // NOVO: 2. Quantidade Total de Aves em Plantéis Agrupados Ativos
         $totalAvesEmPlantelAtivas = 0;
         // Busca todos os plantéis ativos
@@ -325,7 +331,12 @@ class DashboardController extends Controller
             'totalPosturasAtivas',
             'dadosTaxaEclosaoMensal',
             'dadosOvosNaoEclodidosMensal',
-            'dadosDesempenhoChocadeira'
+            'dadosDesempenhoChocadeira',
+            'ano',
+            'mes',
+            'trimestre',
+            'kpis',
+            'previsoesEclosao'
         ));
     }
 
@@ -534,3 +545,209 @@ class DashboardController extends Controller
         ];
     }
 }
+
+
+    /**
+     * Calcular KPIs de performance
+     */
+    private function calcularKPIs()
+    {
+        $dataLimite30Dias = Carbon::now()->subDays(30);
+        
+        // Taxa de Eclosão (últimos 30 dias)
+        $incubacoesConcluidas = Incubacao::where(\'ativo\', false)
+            ->where(\'data_entrada_incubadora\', \'>=\', $dataLimite30Dias)
+            ->get();
+        
+        $totalOvos = $incubacoesConcluidas->sum(\'quantidade_ovos\');
+        $totalInferteis = $incubacoesConcluidas->sum(\'quantidade_inferteis\');
+        $totalEclodidos = $incubacoesConcluidas->sum(\'quantidade_eclodidos\');
+        
+        $ovosViaveis = $totalOvos - $totalInferteis;
+        $taxaEclosao30Dias = $ovosViaveis > 0 ? ($totalEclodidos / $ovosViaveis) * 100 : 0;
+        
+        // Taxa de Fertilidade
+        $taxaFertilidade = $totalOvos > 0 ? (($totalOvos - $totalInferteis) / $totalOvos) * 100 : 0;
+        
+        // Eficiência da Melhor Chocadeira
+        $eficienciaChocadeiras = Incubacao::select(\'chocadeira\')
+            ->selectRaw(\'AVG(CASE WHEN quantidade_ovos - quantidade_inferteis > 0 THEN (quantidade_eclodidos / (quantidade_ovos - quantidade_inferteis)) * 100 ELSE 0 END) as eficiencia\')
+            ->where(\'ativo\', false)
+            ->where(\'data_entrada_incubadora\', \'>=\', $dataLimite30Dias)
+            ->groupBy(\'chocadeira\')
+            ->orderByDesc(\'eficiencia\')
+            ->first();
+        
+        $melhorChocadeiraEficiencia = $eficienciaChocadeiras ? $eficienciaChocadeiras->eficiencia : 0;
+        
+        // Média de Ovos por Incubação
+        $mediaOvosPorIncubacao = $incubacoesConcluidas->count() > 0 ? 
+            $incubacoesConcluidas->avg(\'quantidade_ovos\') : 0;
+        
+        return [
+            \'taxa_eclosao_30_dias\' => round($taxaEclosao30Dias, 1),
+            \'taxa_fertilidade\' => round($taxaFertilidade, 1),
+            \'melhor_chocadeira_eficiencia\' => round($melhorChocadeiraEficiencia, 1),
+            \'media_ovos_incubacao\' => round($mediaOvosPorIncubacao, 1)
+        ];
+    }
+
+    /**
+     * Obter previsões de eclosão
+     */
+    private function obterPrevisoesEclosao()
+    {
+        $proximasEclosoes = Incubacao::where(\'ativo\', true)
+            ->where(\'data_prevista_eclosao\', \'>=\', Carbon::now())
+            ->where(\'data_prevista_eclosao\', \'<=\', Carbon::now()->addDays(30))
+            ->with([\'lote\', \'tipoAve\'])
+            ->orderBy(\'data_prevista_eclosao\')
+            ->get();
+        
+        $previsoes = [];
+        
+        foreach ($proximasEclosoes as $incubacao) {
+            $dataEclosao = Carbon::parse($incubacao->data_prevista_eclosao);
+            $diasRestantes = Carbon::now()->diffInDays($dataEclosao, false);
+            
+            // Determinar status
+            $status = \'normal\';
+            if ($diasRestantes <= 2) {
+                $status = \'urgente\';
+            } elseif ($diasRestantes <= 5) {
+                $status = \'proximo\';
+            }
+            
+            // Verificar se está atrasado
+            if ($diasRestantes < 0) {
+                $status = \'atrasado\';
+            }
+            
+            // Calcular progresso da incubação
+            $dataEntrada = Carbon::parse($incubacao->data_entrada_incubadora);
+            $totalDias = $dataEntrada->diffInDays($dataEclosao);
+            $diasPassados = $dataEntrada->diffInDays(Carbon::now());
+            $progresso = $totalDias > 0 ? min(100, ($diasPassados / $totalDias) * 100) : 0;
+            
+            $previsoes[] = [
+                \'id\' => $incubacao->id,
+                \'lote\' => $incubacao->lote->identificacao_lote ?? \'N/A\',
+                \'tipo_ave\' => $incubacao->tipoAve->nome ?? \'N/A\',
+                \'data_eclosao\' => $dataEclosao->format(\'d/m/Y\'),
+                \'dias_restantes\' => abs($diasRestantes),
+                \'quantidade_ovos\' => $incubacao->quantidade_ovos,
+                \'status\' => $status,
+                \'progresso\' => round($progresso),
+                \'chocadeira\' => $incubacao->chocadeira ?? \'N/A\',
+                \'temperatura_atual\' => $incubacao->temperatura_atual ?? 0,
+                \'umidade_atual\' => $incubacao->umidade_atual ?? 0
+            ];
+        }
+        
+        return $previsoes;
+    }
+}
+
+
+    /**
+     * Calcular KPIs de performance
+     */
+    private function calcularKPIs()
+    {
+        // Taxa de Eclosão (últimos 30 dias)
+        $dataInicio = Carbon::now()->subDays(30);
+        $incubacoesRecentes = Incubacao::where('data_inicio', '>=', $dataInicio)->get();
+        
+        $totalOvosViaveisRecentes = $incubacoesRecentes->sum('quantidade_ovos_viaveis');
+        $totalOvosEclodidosRecentes = $incubacoesRecentes->sum('quantidade_ovos_eclodidos');
+        
+        $taxaEclosao30Dias = $totalOvosViaveisRecentes > 0 
+            ? round(($totalOvosEclodidosRecentes / $totalOvosViaveisRecentes) * 100, 1) 
+            : 0;
+
+        // Taxa de Fertilidade (últimos 30 dias)
+        $totalOvosPostos = PosturaOvo::where('data_postura', '>=', $dataInicio)->sum('quantidade');
+        $totalOvosViaveis = $incubacoesRecentes->sum('quantidade_ovos_viaveis');
+        
+        $taxaFertilidade = $totalOvosPostos > 0 
+            ? round(($totalOvosViaveis / $totalOvosPostos) * 100, 1) 
+            : 0;
+
+        // Melhor Chocadeira (eficiência)
+        $chocadeiras = Incubacao::selectRaw('chocadeira_id, 
+                AVG(CASE WHEN quantidade_ovos_viaveis > 0 THEN (quantidade_ovos_eclodidos / quantidade_ovos_viaveis) * 100 ELSE 0 END) as eficiencia')
+            ->where('data_inicio', '>=', $dataInicio)
+            ->groupBy('chocadeira_id')
+            ->orderByDesc('eficiencia')
+            ->first();
+        
+        $melhorChocadeiraEficiencia = $chocadeiras ? round($chocadeiras->eficiencia, 1) : 0;
+
+        // Média de Ovos por Incubação
+        $mediaOvosPorIncubacao = $incubacoesRecentes->count() > 0 
+            ? round($incubacoesRecentes->avg('quantidade_ovos_viaveis'), 1) 
+            : 0;
+
+        return [
+            'taxa_eclosao_30_dias' => $taxaEclosao30Dias,
+            'taxa_fertilidade' => $taxaFertilidade,
+            'melhor_chocadeira_eficiencia' => $melhorChocadeiraEficiencia,
+            'media_ovos_incubacao' => $mediaOvosPorIncubacao
+        ];
+    }
+
+    /**
+     * Obter previsões de eclosão para os próximos 30 dias
+     */
+    private function obterPrevisoesEclosao()
+    {
+        $hoje = Carbon::now();
+        $em30Dias = Carbon::now()->addDays(30);
+        
+        $incubacoes = Incubacao::with(['chocadeira', 'acasalamento.macho.tipoAve'])
+            ->where('data_eclosao_prevista', '>=', $hoje)
+            ->where('data_eclosao_prevista', '<=', $em30Dias)
+            ->where('status', 'Ativo')
+            ->orderBy('data_eclosao_prevista')
+            ->get();
+
+        $previsoes = [];
+        
+        foreach ($incubacoes as $incubacao) {
+            $dataEclosao = Carbon::parse($incubacao->data_eclosao_prevista);
+            $diasRestantes = $hoje->diffInDays($dataEclosao, false);
+            
+            // Determinar status baseado nos dias restantes
+            $status = 'normal';
+            if ($diasRestantes < 0) {
+                $status = 'atrasado';
+            } elseif ($diasRestantes <= 2) {
+                $status = 'urgente';
+            } elseif ($diasRestantes <= 7) {
+                $status = 'proximo';
+            }
+
+            // Calcular progresso da incubação
+            $dataInicio = Carbon::parse($incubacao->data_inicio);
+            $diasTotais = $dataInicio->diffInDays($dataEclosao);
+            $diasDecorridos = $dataInicio->diffInDays($hoje);
+            $progresso = $diasTotais > 0 ? min(100, round(($diasDecorridos / $diasTotais) * 100)) : 0;
+
+            $previsoes[] = [
+                'id' => $incubacao->id,
+                'lote' => $incubacao->lote ?? 'Lote ' . $incubacao->id,
+                'tipo_ave' => $incubacao->acasalamento->macho->tipoAve->nome ?? 'N/A',
+                'data_eclosao' => $dataEclosao->format('d/m/Y'),
+                'dias_restantes' => abs($diasRestantes),
+                'quantidade_ovos' => $incubacao->quantidade_ovos_viaveis,
+                'chocadeira' => $incubacao->chocadeira->nome ?? 'N/A',
+                'status' => $status,
+                'progresso' => $progresso,
+                'temperatura_atual' => $incubacao->temperatura_atual ?? 0,
+                'umidade_atual' => $incubacao->umidade_atual ?? 0
+            ];
+        }
+
+        return $previsoes;
+    }
+

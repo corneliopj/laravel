@@ -4,71 +4,141 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes; // Importa a trait SoftDeletes
-use Carbon\Carbon; // Importa Carbon para manipulação de datas
+use Carbon\Carbon;
 
 class TransacaoRecorrente extends Model
 {
-    use HasFactory, SoftDeletes; // Usa a trait SoftDeletes
+    use HasFactory;
 
-    protected $table = 'recurring_transactions'; // Nome da tabela no banco de dados (mantém o nome da tabela em inglês no DB)
+    protected $table = 'transacoes_recorrentes';
 
     protected $fillable = [
-        'description', // Descrição da transação
-        'value',       // Valor da transação
-        'category_id', // ID da categoria associada
-        'type',        // Tipo da transação ('receita' ou 'despesa')
-        'frequency',   // Frequência da recorrência ('daily', 'weekly', 'monthly', 'quarterly', 'yearly')
-        'start_date',  // Data de início da recorrência
-        'end_date',    // Data de fim da recorrência (opcional)
-        'next_due_date', // Próxima data de vencimento para geração
-        'last_generated_date', // Última data em que a transação foi gerada
+        'descricao',
+        'tipo',
+        'valor',
+        'categoria_id',
+        'frequencia',
+        'data_inicio',
+        'data_fim',
+        'ativo',
+        'observacoes'
     ];
 
     protected $casts = [
-        'value' => 'decimal:2',
-        'start_date' => 'date',
-        'end_date' => 'date',
-        'next_due_date' => 'date',
-        'last_generated_date' => 'date',
+        'data_inicio' => 'date',
+        'data_fim' => 'date',
+        'valor' => 'decimal:2',
+        'ativo' => 'boolean'
     ];
 
     /**
-     * Uma transação recorrente pertence a uma categoria.
+     * Relacionamento com Categoria
      */
     public function categoria()
     {
-        return $this->belongsTo(Categoria::class, 'category_id');
+        return $this->belongsTo(Categoria::class);
     }
 
     /**
-     * Gera a próxima data de vencimento com base na frequência.
-     *
-     * @return \Carbon\Carbon|null
+     * Escopo para transações ativas
      */
-    public function calculateNextDueDate()
+    public function scopeAtivas($query)
     {
-        // Se já existe uma próxima data de vencimento, usa ela como base, senão usa a data de início
-        $currentDate = $this->next_due_date ?? Carbon::parse($this->start_date);
+        return $query->where('ativo', true);
+    }
 
-        if (!$currentDate) {
-            return null;
+    /**
+     * Escopo para transações de receita
+     */
+    public function scopeReceitas($query)
+    {
+        return $query->where('tipo', 'receita');
+    }
+
+    /**
+     * Escopo para transações de despesa
+     */
+    public function scopeDespesas($query)
+    {
+        return $query->where('tipo', 'despesa');
+    }
+
+    /**
+     * Verificar se a transação deve ser executada em uma data específica
+     */
+    public function deveExecutarEm(Carbon $data): bool
+    {
+        $dataInicio = Carbon::parse($this->data_inicio);
+        
+        // Se a data é anterior ao início da recorrência
+        if ($data->lt($dataInicio)) {
+            return false;
         }
-
-        // Calcula a próxima data com base na frequência
-        switch ($this->frequency) {
-            case 'daily':
-                return $currentDate->addDay();
-            case 'weekly':
-                return $currentDate->addWeek();
-            case 'monthly':
-                return $currentDate->addMonth();
-            case 'quarterly':
-                return $currentDate->addMonths(3);
-            case 'yearly':
-                return $currentDate->addYear();
+        
+        // Se há data fim e a data é posterior
+        if ($this->data_fim && $data->gt(Carbon::parse($this->data_fim))) {
+            return false;
+        }
+        
+        // Verificar frequência
+        switch ($this->frequencia) {
+            case 'diaria':
+                return true;
+                
+            case 'semanal':
+                return $data->dayOfWeek == $dataInicio->dayOfWeek;
+                
+            case 'mensal':
+                return $data->day == $dataInicio->day;
+                
+            case 'anual':
+                return $data->month == $dataInicio->month && $data->day == $dataInicio->day;
+                
             default:
-                return null; // Retorna nulo se a frequência for inválida
+                return false;
         }
     }
+
+    /**
+     * Obter próximas execuções da transação
+     */
+    public function proximasExecucoes(int $dias = 30): array
+    {
+        $execucoes = [];
+        $dataInicio = Carbon::now()->startOfDay();
+        $dataFim = Carbon::now()->addDays($dias)->endOfDay();
+        
+        for ($data = clone $dataInicio; $data->lte($dataFim); $data->addDay()) {
+            if ($this->deveExecutarEm($data)) {
+                $execucoes[] = [
+                    'data' => $data->format('Y-m-d'),
+                    'data_formatada' => $data->format('d/m/Y'),
+                    'descricao' => $this->descricao,
+                    'valor' => $this->valor,
+                    'tipo' => $this->tipo
+                ];
+            }
+        }
+        
+        return $execucoes;
+    }
+
+    /**
+     * Calcular valor total projetado para um período
+     */
+    public function valorProjetado(int $dias = 30): float
+    {
+        $total = 0;
+        $dataInicio = Carbon::now()->startOfDay();
+        $dataFim = Carbon::now()->addDays($dias)->endOfDay();
+        
+        for ($data = clone $dataInicio; $data->lte($dataFim); $data->addDay()) {
+            if ($this->deveExecutarEm($data)) {
+                $total += $this->valor;
+            }
+        }
+        
+        return $total;
+    }
 }
+
