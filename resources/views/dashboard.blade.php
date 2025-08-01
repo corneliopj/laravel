@@ -49,14 +49,14 @@
                                 </div>
                             </div>
                             <div class="card-body" style="display: none;">
-                                <form method="GET" action="{{ route(\'dashboard\') }}" id="filtros-form">
+                                <form method="GET" action="{{ route('dashboard') }}" id="filtros-form">
                                     <div class="row">
                                         <div class="col-md-3">
                                             <div class="form-group">
                                                 <label for="ano">Ano:</label>
                                                 <select name="ano" id="ano" class="form-control">
                                                     @for ($y = Carbon\Carbon::now()->year; $y >= 2020; $y--)
-                                                        <option value="{{ $y }}" {{ $ano == $y ? \'selected\' : \'\' }}>{{ $y }}</option>
+                                                        <option value="{{ $y }}" {{ $ano == $y ? 'selected' : '' }}>{{ $y }}</option>
                                                     @endfor
                                                 </select>
                                             </div>
@@ -66,10 +66,10 @@
                                                 <label for="trimestre">Trimestre:</label>
                                                 <select name="trimestre" id="trimestre" class="form-control">
                                                     <option value="">Todos</option>
-                                                    <option value="1" {{ $trimestre == \'1\' ? \'selected\' : \'\' }}>1º Trimestre</option>
-                                                    <option value="2" {{ $trimestre == \'2\' ? \'selected\' : \'\' }}>2º Trimestre</option>
-                                                    <option value="3" {{ $trimestre == \'3\' ? \'selected\' : \'\' }}>3º Trimestre</option>
-                                                    <option value="4" {{ $trimestre == \'4\' ? \'selected\' : \'\' }}>4º Trimestre</option>
+                                                    <option value="1" {{ $trimestre == '1' ? 'selected' : '' }}>1º Trimestre</option>
+                                                    <option value="2" {{ $trimestre == '2' ? 'selected' : '' }}>2º Trimestre</option>
+                                                    <option value="3" {{ $trimestre == '3' ? 'selected' : '' }}>3º Trimestre</option>
+                                                    <option value="4" {{ $trimestre == '4' ? 'selected' : '' }}>4º Trimestre</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -79,7 +79,7 @@
                                                 <select name="mes" id="mes" class="form-control">
                                                     <option value="">Todos</option>
                                                     @for ($m = 1; $m <= 12; $m++)
-                                                        <option value="{{ $m }}" {{ $mes == $m ? \'selected\' : \'\' }}>
+                                                        <option value="{{ $m }}" {{ $mes == $m ? 'selected' : '' }}>
                                                             {{ Carbon\Carbon::create(null, $m, 1)->monthName }}
                                                         </option>
                                                     @endfor
@@ -113,7 +113,7 @@
                                 <p>Total Geral de Aves</p>
                             </div>
                             <div class="icon">
-                                <i class="fas fa-paw"></i> {{-- Ícone de pata para representar o total de animais --}}
+                                <i class="fas fa-paw"></i>
                             </div>
                             <a href="#" class="small-box-footer">Visão Geral <i class="fas fa-arrow-circle-right"></i></a>
                         </div>
@@ -123,7 +123,7 @@
                     {{-- Manter o original de Aves Ativas (individuais) se desejar --}}
                     <div class="col-lg-3 col-6">
                         <!-- small box -->
-                        <div class="small-box bg-secondary"> {{-- Cor alterada para diferenciar do total geral --}}
+                        <div class="small-box bg-secondary">
                             <div class="inner">
                                 <h3>{{ $totalAvesAtivas }}</h3>
                                 <p>Aves Individuais Ativas</p>
@@ -440,7 +440,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="chart-responsive">
-                                    <canvas id="eclosionLineChart" height="150"></canvas> {{-- ID ALTERADO PARA LINE CHART --}}
+                                    <canvas id="eclosionLineChart" height="150"></canvas>
                                 </div>
                                 <p class="text-muted text-center mt-3">
                                     Total de Ovos: {{ $dadosTaxaEclosaoMensal['metrics']['total_ovos'] }} |
@@ -466,7 +466,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="chart">
-                                    <canvas id="eclosoesBarChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas> {{-- ID ALTERADO PARA BAR CHART --}}
+                                    <canvas id="eclosoesBarChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
                                 </div>
                             </div>
                             <!-- /.card-body -->
@@ -477,13 +477,13 @@
                         <div class="card card-warning card-outline">
                             <div class="card-header">
                                 <h3 class="card-title">
-                                    <i class="fas fa-chart-line"></i> {{-- ÍCONE ALTERADO --}}
+                                    <i class="fas fa-chart-line"></i>
                                     Ovos Postos Diariamente (Últimos 30 Dias)
                                 </h3>
                             </div>
                             <div class="card-body">
                                 <div class="chart">
-                                    <canvas id="ovosPostosLineChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas> {{-- ID ALTERADO PARA LINE CHART --}}
+                                    <canvas id="ovosPostosLineChart" style="min-height: 250px; height: 250px; max-height: 250px; max-width: 100%;"></canvas>
                                 </div>
                             </div>
                             <!-- /.card-body -->
@@ -500,7 +500,7 @@
                             </div>
                             <div class="card-body">
                                 <div class="chart-responsive">
-                                    <canvas id="nonEclosionLineChart" height="250"></canvas> {{-- ID ALTERADO PARA LINE CHART --}}
+                                    <canvas id="nonEclosionLineChart" height="250"></canvas>
                                 </div>
                                 <p class="text-muted text-center mt-3">
                                     Total Infectados: {{ $dadosOvosNaoEclodidosMensal['metrics']['total_infectados'] }} |
@@ -714,7 +714,7 @@
             datasets: [
                 {
                     data: {!! json_encode($dataAvesPorTipo) !!},
-                    backgroundColor : ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de'], // Exemplo de cores
+                    backgroundColor : ['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc', '#d2d6de'],
                 }
             ]
         };
@@ -751,7 +751,7 @@
                 {
                     label: 'Número de Mortes',
                     fill: false,
-                    borderColor: '#dc3545', // Vermelho
+                    borderColor: '#dc3545',
                     data: {!! json_encode($dataMortesMes) !!}
                 }
             ]
@@ -764,7 +764,7 @@
                 yAxes: [{
                     ticks: {
                         beginAtZero: true,
-                        precision: 0 // Apenas números inteiros para contagem
+                        precision: 0
                     }
                 }]
             }
@@ -788,7 +788,7 @@
             maintainAspectRatio     : false,
             scales: {
                 xAxes: [{
-                    stacked: true, // Para barras empilhadas se houver múltiplos tipos de ave no mesmo mês
+                    stacked: true,
                 }],
                 yAxes: [{
                     stacked: true,
@@ -815,7 +815,7 @@
                 {
                     label: 'Ovos Postos',
                     fill: false,
-                    borderColor: 'rgba(255, 193, 7, 1)', // Amarelo
+                    borderColor: 'rgba(255, 193, 7, 1)',
                     data: {!! json_encode($dataOvosPostos) !!}
                 }
             ]
@@ -853,7 +853,7 @@
                     ticks: {
                         beginAtZero: true,
                         callback: function(value) {
-                            return value + '%'; // Adiciona '%' ao rótulo do eixo Y
+                            return value + '%';
                         }
                     }
                 }]
@@ -874,7 +874,7 @@
             }
         };
         new Chart(eclosionLineChartCanvas, {
-            type: 'line', // ALTERADO PARA LINE
+            type: 'line',
             data: eclosionLineChartData,
             options: eclosionLineChartOptions
         });
@@ -972,9 +972,9 @@
             counter: true,
             relativeGaugeSize: true,
             levelColors: [
-                "#ff0000", // red
-                "#f9c802", // yellow
-                "#a9d70b"  // green
+                "#ff0000",
+                "#f9c802",
+                "#a9d70b"
             ],
             customSectors: [
                 { color: "#ff0000", lo: 0, hi: 50 },
@@ -1003,7 +1003,7 @@
         renderGauge('gaugeTaxaEclosao', @json($kpis['taxa_eclosao_30_dias']), 'Taxa Eclosão (30D)');
         renderGauge('gaugeTaxaFertilidade', @json($kpis['taxa_fertilidade']), 'Taxa Fertilidade');
         renderGauge('gaugeMelhorChocadeira', @json($kpis['melhor_chocadeira_eficiencia']), 'Melhor Chocadeira');
-        renderGauge('gaugeMediaOvos', @json($kpis['media_ovos_incubacao']), 'Média Ovos/Incub.', 50); // Max 50 para ovos
+        renderGauge('gaugeMediaOvos', @json($kpis['media_ovos_incubacao']), 'Média Ovos/Incub.', 50);
     });
 
     // Função para limpar os filtros

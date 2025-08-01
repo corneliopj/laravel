@@ -475,8 +475,6 @@ class FinanceiroDashboardController extends Controller
 
         return view('financeiro.relatorios.por_categoria', compact('dadosPorCategoria', 'tipo', 'dataInicio', 'dataFim', 'request', 'dadosGraficoPorCategoria', 'categorias'));
     }
-}
-
 
     /**
      * Obter dados comparativos de períodos
@@ -484,37 +482,37 @@ class FinanceiroDashboardController extends Controller
     private function getDadosComparativo(int $ano, int $mes): array
     {
         // Período atual
-        $receitasAtual = Receita::whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $receitasAtual = Receita::whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
-        $despesasAtual = Despesa::whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $despesasAtual = Despesa::whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
         $saldoAtual = $receitasAtual - $despesasAtual;
         
         // Mês anterior
         $dataAnterior = Carbon::create($ano, $mes, 1)->subMonth();
-        $receitasAnterior = Receita::whereYear(\'data\', $dataAnterior->year)
-            ->whereMonth(\'data\', $dataAnterior->month)
-            ->sum(\'valor\');
+        $receitasAnterior = Receita::whereYear('data', $dataAnterior->year)
+            ->whereMonth('data', $dataAnterior->month)
+            ->sum('valor');
         
-        $despesasAnterior = Despesa::whereYear(\'data\', $dataAnterior->year)
-            ->whereMonth(\'data\', $dataAnterior->month)
-            ->sum(\'valor\');
+        $despesasAnterior = Despesa::whereYear('data', $dataAnterior->year)
+            ->whereMonth('data', $dataAnterior->month)
+            ->sum('valor');
         
         $saldoAnterior = $receitasAnterior - $despesasAnterior;
         
         // Mesmo mês do ano anterior
         $anoAnterior = $ano - 1;
-        $receitasAnoAnterior = Receita::whereYear(\'data\', $anoAnterior)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $receitasAnoAnterior = Receita::whereYear('data', $anoAnterior)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
-        $despesasAnoAnterior = Despesa::whereYear(\'data\', $anoAnterior)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $despesasAnoAnterior = Despesa::whereYear('data', $anoAnterior)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
         $saldoAnoAnterior = $receitasAnoAnterior - $despesasAnoAnterior;
         
@@ -528,33 +526,33 @@ class FinanceiroDashboardController extends Controller
         $variacaoSaldoAno = $this->calcularVariacao($saldoAtual, $saldoAnoAnterior);
         
         return [
-            \'periodo_atual\' => [
-                \'label\' => Carbon::create($ano, $mes, 1)->format(\'M/Y\'),
-                \'receitas\' => $receitasAtual,
-                \'despesas\' => $despesasAtual,
-                \'saldo\' => $saldoAtual
+            'periodo_atual' => [
+                'label' => Carbon::create($ano, $mes, 1)->format('M/Y'),
+                'receitas' => $receitasAtual,
+                'despesas' => $despesasAtual,
+                'saldo' => $saldoAtual
             ],
-            \'periodo_anterior\' => [
-                \'label\' => $dataAnterior->format(\'M/Y\'),
-                \'receitas\' => $receitasAnterior,
-                \'despesas\' => $despesasAnterior,
-                \'saldo\' => $saldoAnterior
+            'periodo_anterior' => [
+                'label' => $dataAnterior->format('M/Y'),
+                'receitas' => $receitasAnterior,
+                'despesas' => $despesasAnterior,
+                'saldo' => $saldoAnterior
             ],
-            \'ano_anterior\' => [
-                \'label\' => Carbon::create($anoAnterior, $mes, 1)->format(\'M/Y\'),
-                \'receitas\' => $receitasAnoAnterior,
-                \'despesas\' => $despesasAnoAnterior,
-                \'saldo\' => $saldoAnoAnterior
+            'ano_anterior' => [
+                'label' => Carbon::create($anoAnterior, $mes, 1)->format('M/Y'),
+                'receitas' => $receitasAnoAnterior,
+                'despesas' => $despesasAnoAnterior,
+                'saldo' => $saldoAnoAnterior
             ],
-            \'variacoes_mes_anterior\' => [
-                \'receitas\' => $variacaoReceitasMes,
-                \'despesas\' => $variacaoDespesasMes,
-                \'saldo\' => $variacaoSaldoMes
+            'variacoes_mes_anterior' => [
+                'receitas' => $variacaoReceitasMes,
+                'despesas' => $variacaoDespesasMes,
+                'saldo' => $variacaoSaldoMes
             ],
-            \'variacoes_ano_anterior\' => [
-                \'receitas\' => $variacaoReceitasAno,
-                \'despesas\' => $variacaoDespesasAno,
-                \'saldo\' => $variacaoSaldoAno
+            'variacoes_ano_anterior' => [
+                'receitas' => $variacaoReceitasAno,
+                'despesas' => $variacaoDespesasAno,
+                'saldo' => $variacaoSaldoAno
             ]
         ];
     }
@@ -566,16 +564,16 @@ class FinanceiroDashboardController extends Controller
     {
         if ($anterior == 0) {
             $percentual = $atual > 0 ? 100 : 0;
-            $tipo = $atual >= 0 ? \'positiva\' : \'negativa\';
+            $tipo = $atual >= 0 ? 'positiva' : 'negativa';
         } else {
             $percentual = abs((($atual - $anterior) / $anterior) * 100);
-            $tipo = $atual >= $anterior ? \'positiva\' : \'negativa\';
+            $tipo = $atual >= $anterior ? 'positiva' : 'negativa';
         }
         
         return [
-            \'percentual\' => round($percentual, 1),
-            \'tipo\' => $tipo,
-            \'valor_absoluto\' => $atual - $anterior
+            'percentual' => round($percentual, 1),
+            'tipo' => $tipo,
+            'valor_absoluto' => $atual - $anterior
         ];
     }
 
@@ -584,36 +582,36 @@ class FinanceiroDashboardController extends Controller
      */
     private function getTop5Despesas(int $ano, int $mes): array
     {
-        $despesas = Despesa::select(\'descricao\', \'categoria_id\')
-            ->selectRaw(\'SUM(valor) as total_valor\')
-            ->selectRaw(\'COUNT(*) as quantidade_transacoes\')
-            ->whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->with(\'categoria\')
-            ->groupBy(\'descricao\', \'categoria_id\')
-            ->orderByDesc(\'total_valor\')
+        $despesas = Despesa::select('descricao', 'categoria_id')
+            ->selectRaw('SUM(valor) as total_valor')
+            ->selectRaw('COUNT(*) as quantidade_transacoes')
+            ->whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->with('categoria')
+            ->groupBy('descricao', 'categoria_id')
+            ->orderByDesc('total_valor')
             ->limit(5)
             ->get();
         
-        $totalPeriodo = Despesa::whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $totalPeriodo = Despesa::whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
         $despesasFormatadas = $despesas->map(function($despesa) use ($totalPeriodo) {
             $percentual = $totalPeriodo > 0 ? ($despesa->total_valor / $totalPeriodo) * 100 : 0;
             
             return [
-                \'descricao\' => $despesa->descricao,
-                \'categoria\' => $despesa->categoria->nome ?? \'N/A\',
-                \'valor\' => $despesa->total_valor,
-                \'quantidade\' => $despesa->quantidade_transacoes,
-                \'percentual\' => round($percentual, 1)
+                'descricao' => $despesa->descricao,
+                'categoria' => $despesa->categoria->nome ?? 'N/A',
+                'valor' => $despesa->total_valor,
+                'quantidade' => $despesa->quantidade_transacoes,
+                'percentual' => round($percentual, 1)
             ];
         });
         
         return [
-            \'despesas\' => $despesasFormatadas->toArray(),
-            \'total_periodo\' => $totalPeriodo
+            'despesas' => $despesasFormatadas->toArray(),
+            'total_periodo' => $totalPeriodo
         ];
     }
 
@@ -622,37 +620,36 @@ class FinanceiroDashboardController extends Controller
      */
     private function getTop5Receitas(int $ano, int $mes): array
     {
-        $receitas = Receita::select(\'descricao\', \'categoria_id\')
-            ->selectRaw(\'SUM(valor) as total_valor\')
-            ->selectRaw(\'COUNT(*) as quantidade_transacoes\')
-            ->whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->with(\'categoria\')
-            ->groupBy(\'descricao\', \'categoria_id\')
-            ->orderByDesc(\'total_valor\')
+        $receitas = Receita::select('descricao', 'categoria_id')
+            ->selectRaw('SUM(valor) as total_valor')
+            ->selectRaw('COUNT(*) as quantidade_transacoes')
+            ->whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->with('categoria')
+            ->groupBy('descricao', 'categoria_id')
+            ->orderByDesc('total_valor')
             ->limit(5)
             ->get();
         
-        $totalPeriodo = Receita::whereYear(\'data\', $ano)
-            ->whereMonth(\'data\', $mes)
-            ->sum(\'valor\');
+        $totalPeriodo = Receita::whereYear('data', $ano)
+            ->whereMonth('data', $mes)
+            ->sum('valor');
         
         $receitasFormatadas = $receitas->map(function($receita) use ($totalPeriodo) {
             $percentual = $totalPeriodo > 0 ? ($receita->total_valor / $totalPeriodo) * 100 : 0;
             
             return [
-                \'descricao\' => $receita->descricao,
-                \'categoria\' => $receita->categoria->nome ?? \'N/A\',
-                \'valor\' => $receita->total_valor,
-                \'quantidade\' => $receita->quantidade_transacoes,
-                \'percentual\' => round($percentual, 1)
+                'descricao' => $receita->descricao,
+                'categoria' => $receita->categoria->nome ?? 'N/A',
+                'valor' => $receita->total_valor,
+                'quantidade' => $receita->quantidade_transacoes,
+                'percentual' => round($percentual, 1)
             ];
         });
         
         return [
-            \'receitas\' => $receitasFormatadas->toArray(),
-            \'total_periodo\' => $totalPeriodo
+            'receitas' => $receitasFormatadas->toArray(),
+            'total_periodo' => $totalPeriodo
         ];
     }
 }
-
