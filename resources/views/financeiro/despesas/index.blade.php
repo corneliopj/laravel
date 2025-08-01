@@ -164,7 +164,7 @@
             </div>
         </div>
         {{-- FIM DO CONTEÚDO PRINCIPAL DA PÁGINA --}}
-
+        @include('layouts.partials.scripts')
         {{-- Inclui o partial footer --}}
         @include('layouts.partials.footer')
     </div>
