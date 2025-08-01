@@ -90,9 +90,6 @@
                         </div>
                     </div>
                 </div>
-@php
-    $saldoTotal = $saldoTotal ?? ($dadosComparativo['periodo_atual']['saldo'] ?? 0);
-@endphp
                 {{-- Seção de Comparativo de Períodos --}}
                 <div class="row mb-4">
                     <div class="col-md-12">
