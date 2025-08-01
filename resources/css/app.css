@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Sidebar Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 0;
+    position: fixed;
+    z-index: 1000;
+    height: 100vh;
+    overflow-x: hidden;
+    transition: 0.5s;
+  }
+  
+  .sidebar.open {
+    width: 250px;
+  }
+  
+  .menu-toggle {
+    display: block;
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1100;
+    font-size: 24px;
+  }
+}
