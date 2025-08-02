@@ -48,18 +48,34 @@ class VendaController extends Controller
         return view('financeiro.vendas.index', compact('vendas', 'compradores'));
     }
 
-    public function create()
-    {
-        $compradores = Venda::distinct()->pluck('comprador')->toArray();
-        $metodosPagamento = [
-            'dinheiro' => 'Dinheiro',
-            'cartao' => 'Cartão',
-            'transferencia' => 'Transferência',
-            'pix' => 'PIX'
-        ];
-        
-        return view('financeiro.vendas.create', compact('compradores', 'metodosPagamento'));
-    }
+   public function create()
+{
+    $compradores = Venda::distinct()->pluck('comprador')->toArray();
+    $metodosPagamento = [
+        'dinheiro' => 'Dinheiro',
+        'cartao' => 'Cartão',
+        'transferencia' => 'Transferência',
+        'pix' => 'PIX'
+    ];
+    
+    // Get available birds
+    $avesDisponiveis = Ave::where('vendavel', true)
+                         ->where('ativo', true)
+                         ->with('tipoAve', 'variacao')
+                         ->get();
+    
+    // Get available plantels
+    $plantelOptions = Plantel::where('ativo', true)
+                           ->orderBy('identificacao_grupo')
+                           ->get();
+    
+    return view('financeiro.vendas.create', compact(
+        'compradores', 
+        'metodosPagamento',
+        'avesDisponiveis',
+        'plantelOptions'
+    ));
+}
 
     public function store(Request $request)
     {
