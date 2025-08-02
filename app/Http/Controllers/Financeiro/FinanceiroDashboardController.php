@@ -75,37 +75,55 @@ class FinanceiroDashboardController extends Controller
         ];
     }
 
-    private function getDadosGraficoBarras($ano, $mes)
-    {
-        $categoriasReceitas = Receita::with('categoria')
-            ->selectRaw('categoria_id, SUM(valor) as total')
-            ->whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->groupBy('categoria_id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
-
-        $categoriasDespesas = Despesa::with('categoria')
-            ->selectRaw('categoria_id, SUM(valor) as total')
-            ->whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->groupBy('categoria_id')
-            ->orderByDesc('total')
-            ->limit(5)
-            ->get();
-
-        return [
-            'receitas' => [
-                'labels' => $categoriasReceitas->pluck('categoria.nome')->toArray(),
-                'data' => $categoriasReceitas->pluck('total')->toArray()
-            ],
-            'despesas' => [
-                'labels' => $categoriasDespesas->pluck('categoria.nome')->toArray(),
-                'data' => $categoriasDespesas->pluck('total')->toArray()
-            ]
-        ];
+   private function getDadosGraficoBarras($ano, $mes)
+{
+    // Receitas por categoria
+    $categoriasReceitas = Receita::with('categoria')
+        ->selectRaw('categoria_id, SUM(valor) as total')
+        ->whereYear('data', $ano)
+        ->whereMonth('data', $mes)
+        ->groupBy('categoria_id');
+    
+    // Total de vendas (como categoria especial)
+    $totalVendas = Venda::whereYear('data_venda', $ano)
+        ->whereMonth('data_venda', $mes)
+        ->where('status', 'concluida')
+        ->sum('valor_final');
+    
+    // Combina os resultados
+    $receitasCombinadas = $categoriasReceitas->get();
+    
+    if ($totalVendas > 0) {
+        $receitasCombinadas->push((object)[
+            'categoria' => (object)['nome' => 'Vendas'],
+            'total' => $totalVendas
+        ]);
     }
+    
+    // Ordena e limita
+    $receitasCombinadas = $receitasCombinadas->sortByDesc('total')->take(5);
+    
+    // Despesas (permanece igual)
+    $categoriasDespesas = Despesa::with('categoria')
+        ->selectRaw('categoria_id, SUM(valor) as total')
+        ->whereYear('data', $ano)
+        ->whereMonth('data', $mes)
+        ->groupBy('categoria_id')
+        ->orderByDesc('total')
+        ->limit(5)
+        ->get();
+
+    return [
+        'receitas' => [
+            'labels' => $receitasCombinadas->pluck('categoria.nome')->toArray(),
+            'data' => $receitasCombinadas->pluck('total')->toArray()
+        ],
+        'despesas' => [
+            'labels' => $categoriasDespesas->pluck('categoria.nome')->toArray(),
+            'data' => $categoriasDespesas->pluck('total')->toArray()
+        ]
+    ];
+}
 
     private function getDadosGraficoPizza($ano, $mes)
     {
@@ -245,54 +263,67 @@ class FinanceiroDashboardController extends Controller
     }
 
     private function getTop5Receitas(int $ano, int $mes): array
-    {
-        $receitas = Receita::select('descricao', 'categoria_id')
-            ->selectRaw('SUM(valor) as total_valor')
-            ->selectRaw('COUNT(*) as quantidade_transacoes')
-            ->whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->with('categoria')
-            ->groupBy('descricao', 'categoria_id')
-            ->orderByDesc('total_valor')
-            ->limit(5)
-            ->get();
-        
-        $totalPeriodo = Receita::whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->sum('valor');
-        
-        $receitasFormatadas = $receitas->map(function($receita) use ($totalPeriodo) {
-            $percentual = $totalPeriodo > 0 ? ($receita->total_valor / $totalPeriodo) * 100 : 0;
-            
-            return [
-                'descricao' => $receita->descricao,
-                'categoria' => $receita->categoria->nome ?? 'N/A',
-                'valor' => $receita->total_valor,
-                'quantidade' => $receita->quantidade_transacoes,
-                'percentual' => round($percentual, 1)
-            ];
-        });
+{
+    // Receitas tradicionais
+    $receitas = Receita::select('descricao', 'categoria_id')
+        ->selectRaw('SUM(valor) as total_valor')
+        ->selectRaw('COUNT(*) as quantidade_transacoes')
+        ->whereYear('data', $ano)
+        ->whereMonth('data', $mes)
+        ->with('categoria')
+        ->groupBy('descricao', 'categoria_id');
+    
+    // Vendas concluídas (como receitas)
+    $vendas = Venda::select('comprador as descricao')
+        ->selectRaw('NULL as categoria_id')
+        ->selectRaw('SUM(valor_final) as total_valor')
+        ->selectRaw('COUNT(*) as quantidade_transacoes')
+        ->whereYear('data_venda', $ano)
+        ->whereMonth('data_venda', $mes)
+        ->where('status', 'concluida')
+        ->groupBy('comprador');
+    
+    // Combina e ordena os resultados
+    $receitasCombinadas = $receitas->unionAll($vendas)
+        ->orderByDesc('total_valor')
+        ->limit(5)
+        ->get();
+    
+    // Calcula o total combinado
+    $totalPeriodo = $this->getTotalReceitas($ano, $mes);
+    
+    // Formata os resultados
+    $receitasFormatadas = $receitasCombinadas->map(function($item) use ($totalPeriodo) {
+        $percentual = $totalPeriodo > 0 ? ($item->total_valor / $totalPeriodo) * 100 : 0;
         
         return [
-            'receitas' => $receitasFormatadas->toArray(),
-            'total_periodo' => $totalPeriodo
+            'descricao' => $item->descricao ?? 'Venda',
+            'categoria' => $item->categoria->nome ?? 'Vendas',
+            'valor' => $item->total_valor,
+            'quantidade' => $item->quantidade_transacoes,
+            'percentual' => round($percentual, 1)
         ];
-    }
-
+    });
+    
+    return [
+        'receitas' => $receitasFormatadas->toArray(),
+        'total_periodo' => $totalPeriodo
+    ];
+}
     /**
      * Calcula o total de receitas incluindo vendas
      */
     private function getTotalReceitas(int $ano, int $mes): float
-    {
-        $receitas = Receita::whereYear('data', $ano)
-            ->whereMonth('data', $mes)
-            ->sum('valor');
-            
-        $vendas = Venda::whereYear('data_venda', $ano)
-            ->whereMonth('data_venda', $mes)
-            ->where('status', 'concluida')
-            ->sum('valor_final');
-            
-        return $receitas + $vendas;
-    }
+{
+    $receitas = Receita::whereYear('data', $ano)
+        ->whereMonth('data', $mes)
+        ->sum('valor');
+        
+    $vendas = Venda::whereYear('data_venda', $ano)
+        ->whereMonth('data_venda', $mes)
+        ->where('status', 'concluida')
+        ->sum('valor_final');
+        
+    return $receitas + $vendas;
+}
 }
