@@ -157,12 +157,84 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Função para inicializar uma linha de item
     function initializeItemRow(rowElement) {
-        // ... (mesma função do create.blade.php) ...
+               const tipoItemRadios = rowElement.querySelectorAll('input[type="radio"]');
+        const divAveId = rowElement.querySelector('[id^="div_ave_id_"]');
+        const divPlantelId = rowElement.querySelector('[id^="div_plantel_id_"]');
+        const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
+        
+        function toggleItemFields() {
+            const selectedValue = rowElement.querySelector('input[type="radio"]:checked').value;
+            
+            if (selectedValue === 'individual') {
+                divAveId.style.display = 'block';
+                divPlantelId.style.display = 'none';
+                quantidadeInput.readOnly = true;
+                quantidadeInput.value = 1;
+            } else if (selectedValue === 'plantel') {
+                divAveId.style.display = 'none';
+                divPlantelId.style.display = 'block';
+                quantidadeInput.readOnly = false;
+            } else {
+                divAveId.style.display = 'none';
+                divPlantelId.style.display = 'none';
+                quantidadeInput.readOnly = false;
+            }
+        }
+        
+        tipoItemRadios.forEach(radio => {
+            radio.addEventListener('change', toggleItemFields);
+        });
+        
+        toggleItemFields();
+        
+        // Adicionar evento para o botão de remover
+        const removeBtn = rowElement.querySelector('.remove-item-btn');
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                rowElement.remove();
+                updateTotals();
+            });
+        }
+        
+        // Adicionar eventos para atualizar totais
+        const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
+        const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
+        
+        if (quantidadeInput) quantidadeInput.addEventListener('input', updateTotals);
+        if (precoInput) precoInput.addEventListener('input', updateTotals);dValue = rowElement.querySelector('input[type="radio"]:checked').value;
+            
+            if (selectedValue === 'individual') {
+                divAveId.style.display = 'block';
+                divPlantelId.style.display = 'none';
+                quantidadeInput.readOnly = true;
+                quantidadeInput.value = 1;
+            } else if (selectedValue === 'plantel') {
+                divAveId.style.display = 'none';
+                divPlantelId.style.display = 'block';
+                quantidadeInput.readOnly = false;
+            } else {
+                divAveId.style.display = 'none';
+                divPlantelId.style.display = 'none';
+                quantidadeInput.readOnly = false;
+            }
     }
 
     // Função para atualizar totais
-    function updateTotals() {
-        // ... (mesma função do create.blade.php) ...
+ function updateTotals() {
+        let subtotal = 0;
+        
+        document.querySelectorAll('.item-row').forEach(row => {
+            const quantidade = parseFloat(row.querySelector('input[name$="[quantidade]"]').value) || 0;
+            const preco = parseFloat(row.querySelector('input[name$="[preco_unitario]"]').value) || 0;
+            subtotal += quantidade * preco;
+        });
+        
+        const desconto = parseFloat(descontoInput.value) || 0;
+        const total = subtotal - desconto;
+        
+        document.getElementById('total-venda').textContent = 
+            'R$ ' + total.toFixed(2).replace('.', ',');
+    
     }
 
     // Inicializar linhas existentes
@@ -172,7 +244,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Adicionar novo item
     addItemBtn.addEventListener('click', function() {
-        // ... (mesmo código do create.blade.php) ...
+              const template = `
+            @include('financeiro.vendas.partials.item_row', [
+                'index' => 'ITEM_INDEX_PLACEHOLDER',
+                'item' => null,
+                'avesDisponiveis' => $avesDisponiveis,
+                'plantelOptions' => $plantelOptions,
+            ])
+        `.replace(/ITEM_INDEX_PLACEHOLDER/g, itemIndex);
+        
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = template.trim();
+        const newRow = tempDiv.firstChild;
+        
+        itemsContainer.appendChild(newRow);
+        initializeItemRow(newRow);
+        
+        itemIndex++;
+        updateTotals();
     });
 
     // Evento para desconto

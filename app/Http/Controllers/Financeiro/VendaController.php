@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Financeiro;
 use App\Http\Controllers\Controller;
 use App\Models\Venda;
 use App\Models\Ave;
+use App\Models\Plantel;
 use Illuminate\Http\Request;
 
 class VendaController extends Controller
@@ -110,6 +111,7 @@ class VendaController extends Controller
         
         // Aves que já estão na venda atual devem estar disponíveis
         $avesNaVendaAtual = $venda->vendaItems->pluck('ave_id')->filter()->toArray();
+		$compradores = Venda::distinct()->pluck('comprador')->toArray(); 
 
         // Aves que estão ativas e vendáveis, ou que já estão na venda atual
         $avesDisponiveis = Ave::where('vendavel', true)
@@ -120,7 +122,7 @@ class VendaController extends Controller
 
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        return view('financeiro.vendas.edit', compact('venda', 'metodosPagamento', 'statusOptions', 'avesDisponiveis', 'plantelOptions'));
+        return view('financeiro.vendas.edit', compact('venda','metodosPagamento', 'statusOptions', 'avesDisponiveis', 'plantelOptions'));
     }
 
     /**
