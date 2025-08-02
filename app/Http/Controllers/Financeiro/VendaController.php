@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
 use App\Models\Venda;
+use App\Models\Ave;
 use Illuminate\Http\Request;
 
 class VendaController extends Controller
