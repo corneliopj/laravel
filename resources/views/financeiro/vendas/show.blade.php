@@ -1,21 +1,59 @@
 @php
-    $pageTitle = 'Detalhes da Venda';
+    $pageTitle = 'Detalhes da Venda #' . $venda->id;
 @endphp
 
 @include('layouts.partials.head')
+
+<style>
+    .nota-fiscal {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .cabecalho {
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+    }
+    .logo {
+        max-width: 150px;
+        margin-bottom: 10px;
+    }
+    .detalhes-venda {
+        margin-bottom: 30px;
+    }
+    .table-itens {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .table-itens th {
+        background: #f8f9fa;
+        text-align: left;
+        padding: 8px;
+    }
+    .table-itens td {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    .totais {
+        text-align: right;
+        margin-top: 20px;
+    }
+</style>
 
 <div class="wrapper">
     @include('layouts.partials.navbar')
     @include('layouts.partials.sidebar')
 
-    <!-- Content Wrapper. Contains page content -->
     <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
-                        <h1>Detalhes da Venda: #{{ $venda->id }}</h1>
+                        <h1>{{ $pageTitle }}</h1>
                     </div>
                     <div class="col-sm-6">
                         <ol class="breadcrumb float-sm-right">
@@ -25,164 +63,90 @@
                         </ol>
                     </div>
                 </div>
-            </div><!-- /.container-fluid -->
+            </div>
         </section>
 
-        <!-- Main content -->
         <section class="content">
             <div class="container-fluid">
-                <div class="row">
-                    <div class="col-md-10 offset-md-1">
-                        <div class="card card-primary">
-                            <div class="card-header">
-                                <h3 class="card-title">Informações da Venda</h3>
-                            </div>
-                            <!-- /.card-header -->
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>ID da Venda:</label>
-                                            <p>{{ $venda->id }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Data da Venda:</label>
-                                            <p>{{ $venda->data_venda->format('d/m/Y') }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Comprador:</label>
-                                            <p>{{ $venda->comprador ?? 'Não informado' }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Método de Pagamento:</label>
-                                            <p>{{ $venda->metodo_pagamento ?? 'Não informado' }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Status:</label>
-                                            <p>
-                                                @if ($venda->status == 'concluida')
-                                                    <span class="badge badge-success">Concluída</span>
-                                                @elseif ($venda->status == 'pendente')
-                                                    <span class="badge badge-warning">Pendente</span>
-                                                @else
-                                                    <span class="badge badge-danger">Cancelada</span>
-                                                @endif
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="form-group">
-                                            <label>Valor Total da Venda:</label>
-                                            <p>R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Desconto:</label>
-                                            <p>R$ {{ number_format($venda->desconto, 2, ',', '.') }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Valor Final da Venda:</label>
-                                            <p>R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Comissão (%):</label>
-                                            <p>{{ number_format($venda->comissao_percentual, 2, ',', '.') }}%</p>
-                                        </div>
-                                        <div class="form-group">
-                                            <label>Valor da Comissão (R$):</label>
-                                            <p>R$ {{ number_format($venda->valor_comissao, 2, ',', '.') }}</p>
-                                        </div>
-                                        @if ($venda->user)
-                                            <div class="form-group">
-                                                <label>Vendedor:</label>
-                                                <p>{{ $venda->user->name }}</p>
-                                            </div>
-                                        @endif
-                                        @if ($venda->despesaComissao)
-                                            <div class="form-group">
-                                                <label>Despesa de Comissão ID:</label>
-                                                <p>{{ $venda->despesaComissao->id }}</p>
-                                            </div>
-                                        @endif
-                                    </div>
-                                </div>
+                <div class="nota-fiscal">
+                    <div class="cabecalho">
+                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo">
+                        <h2>Criatório Coroné & Agente Resolve - MEI</h2>
+                        <p>CNPJ 19.173.619/0001-26</p>
+                        <p>Rua Belo Horizonte, 2634 - Centro - Santa Luzia d' Oeste - RO, CEP 76.950-000</p>
+                        <h3>NOTA DE VENDA - MEI</h3>
+                    </div>
 
-                                <hr>
-                                <h4>Itens da Venda</h4>
-                                @if ($venda->vendaItems->isEmpty())
-                                    <p>Nenhum item registrado para esta venda.</p>
-                                @else
-                                    <div class="table-responsive">
-                                        <table class="table table-bordered table-striped">
-                                            <thead>
-                                                <tr>
-                                                    <th>Descrição</th>
-                                                    <th>Tipo</th>
-                                                    <th>Identificação</th>
-                                                    <th>Qtd</th>
-                                                    <th>Preço Unitário</th>
-                                                    <th>Valor Total Item</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach ($venda->vendaItems as $item)
-                                                    <tr>
-                                                        <td>{{ $item->descricao_item }}</td>
-                                                        <td>
-                                                            @if ($item->ave_id)
-                                                                Ave Individual
-                                                            @elseif ($item->plantel_id)
-                                                                Plantel
-                                                            @else
-                                                                Genérico
-                                                            @endif
-                                                        </td>
-                                                        <td>
-                                                            @if ($item->ave_id)
-                                                                <a href="{{ route('aves.show', $item->ave_id) }}">{{ $item->ave->matricula ?? 'Ave Removida' }}</a>
-                                                            @elseif ($item->plantel_id)
-                                                                <a href="{{ route('plantel.show', $item->plantel_id) }}">{{ $item->plantel->identificacao_grupo ?? 'Plantel Removido' }}</a>
-                                                            @else
-                                                                N/A
-                                                            @endif
-                                                        </td>
-                                                        <td>{{ $item->quantidade }}</td>
-                                                        <td>R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
-                                                        <td>R$ {{ number_format($item->valor_total_item, 2, ',', '.') }}</td>
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                @endif
-
-                                <div class="form-group mt-4">
-                                    <label>Observações:</label>
-                                    <p>{{ $venda->observacoes ?? 'N/A' }}</p>
-                                </div>
-                                <div class="form-group">
-                                    <label>Registrado em:</label>
-                                    <p>{{ $venda->created_at->format('d/m/Y H:i:s') }}</p>
-                                </div>
-                                <div class="form-group">
-                                    <label>Última Atualização:</label>
-                                    <p>{{ $venda->updated_at->format('d/m/Y H:i:s') }}</p>
-                                </div>
+                    <div class="detalhes-venda">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>Número:</strong> {{ $venda->id }}</p>
+                                <p><strong>Data:</strong> {{ $venda->data_venda->format('d/m/Y H:i') }}</p>
                             </div>
-                            <!-- /.card-body -->
-                            <div class="card-footer">
-                                <a href="{{ route('financeiro.vendas.edit', $venda->id) }}" class="btn btn-warning">Editar</a>
-                                <a href="{{ route('financeiro.vendas.index') }}" class="btn btn-secondary">Voltar à Lista</a>
+                            <div class="col-md-6">
+                                <p><strong>Comprador:</strong> {{ $venda->comprador }}</p>
+                                <p><strong>Status:</strong> 
+                                    @if ($venda->status == 'concluida')
+                                        <span class="badge badge-success">Concluída</span>
+                                    @elseif ($venda->status == 'pendente')
+                                        <span class="badge badge-warning">Pendente</span>
+                                    @else
+                                        <span class="badge badge-danger">Cancelada</span>
+                                    @endif
+                                </p>
                             </div>
                         </div>
-                        <!-- /.card -->
+                    </div>
+
+                    <table class="table-itens">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Descrição</th>
+                                <th>Qtd</th>
+                                <th>Valor Unit.</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($venda->itens as $item)
+                            <tr>
+                                <td>{{ $loop->iteration }}</td>
+                                <td>{{ $item['descricao'] }}</td>
+                                <td>{{ $item['quantidade'] }}</td>
+                                <td>R$ {{ number_format($item['preco_unitario'], 2, ',', '.') }}</td>
+                                <td>R$ {{ number_format($item['quantidade'] * $item['preco_unitario'], 2, ',', '.') }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+
+                    <div class="totais">
+                        <p><strong>Subtotal:</strong> R$ {{ number_format($venda->valor_final + $venda->desconto, 2, ',', '.') }}</p>
+                        <p><strong>Desconto:</strong> R$ {{ number_format($venda->desconto, 2, ',', '.') }}</p>
+                        <h4><strong>Total:</strong> R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</h4>
+                    </div>
+
+                    <div class="observacoes mt-4">
+                        <p><strong>Observações:</strong></p>
+                        <p>{{ $venda->observacoes ?? 'Nenhuma observação registrada.' }}</p>
+                    </div>
+
+                    <div class="mt-4">
+                        <a href="{{ route('financeiro.vendas.index') }}" class="btn btn-secondary">
+                            Voltar
+                        </a>
+                        <a href="{{ route('financeiro.vendas.edit', $venda->id) }}" class="btn btn-primary">
+                            Editar
+                        </a>
+                        <button onclick="window.print()" class="btn btn-success">
+                            Imprimir
+                        </button>
                     </div>
                 </div>
             </div>
         </section>
-        <!-- /.content -->
     </div>
-    <!-- /.content-wrapper -->
-    @include('layouts.partials.scripts')
-    @include('layouts.partials.footer')
 </div>
-<!-- ./wrapper -->
+
+@include('layouts.partials.scripts')
