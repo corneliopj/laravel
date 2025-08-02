@@ -74,7 +74,7 @@
                         <h2>Criatório Coroné & Agente Resolve - MEI</h2>
                         <p>CNPJ 19.173.619/0001-26</p>
                         <p>Rua Belo Horizonte, 2634 - Centro - Santa Luzia d' Oeste - RO, CEP 76.950-000</p>
-                        <h3>NOTA DE VENDA - MEI</h3>
+                        <h3>NOTA FISCAL</h3>
                     </div>
 
                     <div class="detalhes-venda">
@@ -109,20 +109,20 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach($venda->itens as $item)
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>{{ $item['descricao'] }}</td>
-                                <td>{{ $item['quantidade'] }}</td>
-                                <td>R$ {{ number_format($item['preco_unitario'], 2, ',', '.') }}</td>
-                                <td>R$ {{ number_format($item['quantidade'] * $item['preco_unitario'], 2, ',', '.') }}</td>
-                            </tr>
+                            @foreach($venda->vendaItems as $item)
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $item->descricao_item }}</td>
+                                    <td>{{ $item->quantidade }}</td>
+                                    <td>R$ {{ number_format($item->preco_unitario, 2, ',', '.') }}</td>
+                                    <td>R$ {{ number_format($item->valor_total_item, 2, ',', '.') }}</td>
+                                </tr>
                             @endforeach
                         </tbody>
                     </table>
 
                     <div class="totais">
-                        <p><strong>Subtotal:</strong> R$ {{ number_format($venda->valor_final + $venda->desconto, 2, ',', '.') }}</p>
+                        <p><strong>Subtotal:</strong> R$ {{ number_format($venda->valor_total, 2, ',', '.') }}</p>
                         <p><strong>Desconto:</strong> R$ {{ number_format($venda->desconto, 2, ',', '.') }}</p>
                         <h4><strong>Total:</strong> R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</h4>
                     </div>
