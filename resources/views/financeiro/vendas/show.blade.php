@@ -70,7 +70,7 @@
             <div class="container-fluid">
                 <div class="nota-fiscal">
                     <div class="cabecalho">
-                        <img src="{{ asset('images/logo.png') }}" alt="Logo" class="logo">
+                        <img src="{{ asset('img/logo.png') }}" alt="Logo" class="logo">
                         <h2>Criatório Coroné & Agente Resolve - MEI</h2>
                         <p>CNPJ 19.173.619/0001-26</p>
                         <p>Rua Belo Horizonte, 2634 - Centro - Santa Luzia d' Oeste - RO, CEP 76.950-000</p>
