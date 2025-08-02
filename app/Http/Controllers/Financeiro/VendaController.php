@@ -122,7 +122,7 @@ class VendaController extends Controller
 
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        return view('financeiro.vendas.edit', compact('venda','metodosPagamento', 'statusOptions', 'avesDisponiveis', 'plantelOptions'));
+        return view('financeiro.vendas.edit', compact('venda','compradores', 'metodosPagamento', 'statusOptions', 'avesDisponiveis', 'plantelOptions'));
     }
 
     /**
