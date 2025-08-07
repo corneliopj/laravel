@@ -92,22 +92,103 @@ class VendaController extends Controller
         // Calcula o valor total
         $valorTotal = collect($request->itens)->sum(function($item) {
             return $item['quantidade'] * $item['preco_unitario'];
-        }) - ($request->desconto ?? 0);
+        });
         
-        // Cria a venda
-        $venda = Venda::create([
-            'comprador' => $request->comprador,
-            'data_venda' => $request->data_venda,
-            'metodo_pagamento' => $request->metodo_pagamento,
-            'valor_final' => $valorTotal,
-            'desconto' => $request->desconto ?? 0,
-            'observacoes' => $request->observacoes,
-            'status' => 'concluida',
-            'itens' => $request->itens
-        ]);
+        $desconto = $request->desconto ?? 0;
+        $valorFinal = $valorTotal - $desconto;
         
-        return redirect()->route('financeiro.vendas.show', $venda->id)
-            ->with('success', 'Venda registrada com sucesso!');
+        // Comissão de 15% sobre o valor final
+        $percentualComissao = 15.0;
+        $valorComissao = ($valorFinal * $percentualComissao) / 100;
+        
+        // Usuário logado (vendedor)
+        $vendedor = auth()->user();
+        
+        \DB::beginTransaction();
+        try {
+            // Cria a venda
+            $venda = Venda::create([
+                'comprador' => $request->comprador,
+                'data_venda' => $request->data_venda,
+                'metodo_pagamento' => $request->metodo_pagamento,
+                'valor_total' => $valorTotal,
+                'desconto' => $desconto,
+                'valor_final' => $valorFinal,
+                'observacoes' => $request->observacoes,
+                'status' => 'concluida',
+                'user_id' => $vendedor ? $vendedor->id : null, // Vincula ao usuário logado
+                'percentual_comissao' => $percentualComissao,
+                'comissao_paga' => true,
+            ]);
+            
+            // Cria os itens da venda
+            foreach ($request->itens as $item) {
+                \App\Models\VendaItem::create([
+                    'venda_id' => $venda->id,
+                    'descricao_item' => $item['descricao'],
+                    'ave_id' => $item['ave_id'] ?? null,
+                    'plantel_id' => $item['plantel_id'] ?? null,
+                    'quantidade' => $item['quantidade'],
+                    'preco_unitario' => $item['preco_unitario'],
+                    'valor_total_item' => $item['quantidade'] * $item['preco_unitario'],
+                ]);
+                
+                // Atualiza status das aves vendidas
+                if (isset($item['ave_id']) && $item['ave_id']) {
+                    $ave = \App\Models\Ave::find($item['ave_id']);
+                    if ($ave) {
+                        $ave->update([
+                            'ativo' => false,
+                            'vendavel' => false,
+                            'data_inativado' => now(),
+                        ]);
+                    }
+                }
+                
+                // Registra movimentação do plantel se aplicável
+                if (isset($item['plantel_id']) && $item['plantel_id']) {
+                    \App\Models\MovimentacaoPlantel::create([
+                        'plantel_id' => $item['plantel_id'],
+                        'tipo_movimentacao' => 'saida_venda',
+                        'quantidade' => $item['quantidade'],
+                        'data_movimentacao' => $request->data_venda,
+                        'observacoes' => 'Venda #' . $venda->id . ' - Comprador: ' . $request->comprador,
+                    ]);
+                }
+            }
+            
+            // Cria a despesa de comissão se há vendedor e comissão > 0
+            if ($vendedor && $valorComissao > 0) {
+                $categoriaComissao = \App\Models\Categoria::firstOrCreate(
+                    ['nome' => 'Comissões'],
+                    ['descricao' => 'Despesas geradas por comissões de vendas.']
+                );
+                
+                $despesaComissao = \App\Models\Despesa::create([
+                    'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
+                    'valor' => $valorComissao,
+                    'data' => now(),
+                    'categoria_id' => $categoriaComissao->id,
+                    'observacoes' => 'Comissão de ' . $percentualComissao . '% referente à venda #' . $venda->id,
+                ]);
+                
+                // Vincula a despesa de comissão à venda
+                $venda->update(['despesa_id' => $despesaComissao->id]);
+            }
+            
+            \DB::commit();
+            
+            return redirect()->route('financeiro.vendas.show', $venda->id)
+                ->with('success', 'Venda registrada com sucesso! Comissão de ' . $percentualComissao . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');
+                
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            \Log::error('Erro ao criar venda: ' . $e->getMessage());
+            
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
+        }
     }
 
     public function show($id)
