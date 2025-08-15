@@ -157,10 +157,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const divAveId = rowElement.querySelector('[id^="div_ave_id_"]');
         const divPlantelId = rowElement.querySelector('[id^="div_plantel_id_"]');
         const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
-        
+        const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
+
         function toggleItemFields() {
-            const selectedValue = rowElement.querySelector('input[type="radio"]:checked').value;
-            
+            // Adiciona verificação para os elementos antes de usá-los
+            if (!divAveId || !divPlantelId || !quantidadeInput) {
+                console.error("Um ou mais elementos do formulário de item não foram encontrados.", rowElement);
+                return;
+            }
+
+            const checkedRadio = rowElement.querySelector('input[type="radio"]:checked');
+            // Se nenhum rádio estiver selecionado, não faz nada. A chamada inicial de toggleItemFields() cuidará do estado inicial.
+            if (!checkedRadio) {
+                divAveId.style.display = 'none';
+                divPlantelId.style.display = 'none';
+                if (quantidadeInput) quantidadeInput.readOnly = false;
+                return;
+            }
+            const selectedValue = checkedRadio.value;
+
             if (selectedValue === 'individual') {
                 divAveId.style.display = 'block';
                 divPlantelId.style.display = 'none';
@@ -175,14 +190,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 divPlantelId.style.display = 'none';
                 quantidadeInput.readOnly = false;
             }
+            // Dispara a atualização de totais ao mudar o tipo, caso a quantidade mude para 1
+            updateTotals();
         }
-        
+
         tipoItemRadios.forEach(radio => {
             radio.addEventListener('change', toggleItemFields);
         });
-        
+
         toggleItemFields();
-        
+
         // Adicionar evento para o botão de remover
         const removeBtn = rowElement.querySelector('.remove-item-btn');
         if (removeBtn) {
@@ -191,11 +208,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateTotals();
             });
         }
-        
+
         // Adicionar eventos para atualizar totais
-        const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
-        const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
-        
         if (quantidadeInput) quantidadeInput.addEventListener('input', updateTotals);
         if (precoInput) precoInput.addEventListener('input', updateTotals);
     }
