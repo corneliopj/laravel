@@ -6,7 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Venda;
 use App\Models\Ave;
 use App\Models\Plantel;
+use App\Models\VendaItem;
+use App\Models\MovimentacaoPlantel;
+use App\Models\Categoria;
+use App\Models\Despesa;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
+use Carbon\Carbon;
 
 class VendaController extends Controller
 {
@@ -55,7 +63,8 @@ class VendaController extends Controller
         'dinheiro' => 'Dinheiro',
         'cartao' => 'Cartão',
         'transferencia' => 'Transferência',
-        'pix' => 'PIX'
+        'pix' => 'PIX',
+        'outro' => 'Outro'
     ];
     
     // Get available birds
@@ -81,25 +90,25 @@ class VendaController extends Controller
     {
         $request->validate([
             'comprador' => 'required',
-            'data_venda' => 'required|date',
+            'data_venda' => 'required|date|before_or_equal:today',
             'metodo_pagamento' => 'required',
             'itens' => 'required|array|min:1',
-            'itens.*.descricao' => 'required',
+            'itens.*.descricao_item' => 'required',
             'itens.*.quantidade' => 'required|numeric|min:1',
-            'itens.*.preco_unitario' => 'required|numeric|min:0',
+            'itens.*.preco_unitario' => 'required|numeric|min:0.01',
         ]);
         
         // Calcula o valor total
         $valorTotal = collect($request->itens)->sum(function($item) {
             return $item['quantidade'] * $item['preco_unitario'];
         });
-        
+
         $desconto = $request->desconto ?? 0;
         $valorFinal = $valorTotal - $desconto;
         
-        // Comissão de 15% sobre o valor final
-        $percentualComissao = 15.0;
-        $valorComissao = ($valorFinal * $percentualComissao) / 100;
+        // Configura comissão de 15%
+        $comissaoPercentual = 15.0; // Nome da variável ajustado para comissao_percentual
+        $valorComissao = ($valorFinal * $comissaoPercentual) / 100;
         
         // Usuário logado (vendedor)
         $vendedor = auth()->user();
@@ -117,15 +126,15 @@ class VendaController extends Controller
                 'observacoes' => $request->observacoes,
                 'status' => 'concluida',
                 'user_id' => $vendedor ? $vendedor->id : null, // Vincula ao usuário logado
-                'percentual_comissao' => $percentualComissao,
+                'percentual_comissao' => $comissaoPercentual, // Nome da coluna corrigido
                 'comissao_paga' => true,
             ]);
             
             // Cria os itens da venda
             foreach ($request->itens as $item) {
-                \App\Models\VendaItem::create([
+                $vendaItem = VendaItem::create([
                     'venda_id' => $venda->id,
-                    'descricao_item' => $item['descricao'],
+                    'descricao_item' => $item['descricao_item'],
                     'ave_id' => $item['ave_id'] ?? null,
                     'plantel_id' => $item['plantel_id'] ?? null,
                     'quantidade' => $item['quantidade'],
@@ -134,8 +143,8 @@ class VendaController extends Controller
                 ]);
                 
                 // Atualiza status das aves vendidas
-                if (isset($item['ave_id']) && $item['ave_id']) {
-                    $ave = \App\Models\Ave::find($item['ave_id']);
+                if (isset($item['ave_id'])) {
+                    $ave = Ave::find($item['ave_id']);
                     if ($ave) {
                         $ave->update([
                             'ativo' => false,
@@ -146,8 +155,8 @@ class VendaController extends Controller
                 }
                 
                 // Registra movimentação do plantel se aplicável
-                if (isset($item['plantel_id']) && $item['plantel_id']) {
-                    \App\Models\MovimentacaoPlantel::create([
+                if (isset($item['plantel_id'])) {
+                    MovimentacaoPlantel::create([
                         'plantel_id' => $item['plantel_id'],
                         'tipo_movimentacao' => 'saida_venda',
                         'quantidade' => $item['quantidade'],
@@ -159,15 +168,15 @@ class VendaController extends Controller
             
             // Cria a despesa de comissão se há vendedor e comissão > 0
             if ($vendedor && $valorComissao > 0) {
-                $categoriaComissao = \App\Models\Categoria::firstOrCreate(
+                $categoriaComissao = Categoria::firstOrCreate(
                     ['nome' => 'Comissões'],
-                    ['descricao' => 'Despesas geradas por comissões de vendas.']
+                    ['tipo' => 'despesa', 'descricao' => 'Despesas geradas por comissões de vendas.']
                 );
                 
-                $despesaComissao = \App\Models\Despesa::create([
+                $despesaComissao = Despesa::create([
                     'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
                     'valor' => $valorComissao,
-                    'data' => now(),
+                    'data' => Carbon::now(),
                     'categoria_id' => $categoriaComissao->id,
                     'observacoes' => 'Comissão de ' . $percentualComissao . '% referente à venda #' . $venda->id,
                 ]);
@@ -176,7 +185,7 @@ class VendaController extends Controller
                 $venda->update(['despesa_id' => $despesaComissao->id]);
             }
             
-            \DB::commit();
+            DB::commit();
             
             return redirect()->route('financeiro.vendas.show', $venda->id)
                 ->with('success', 'Venda registrada com sucesso! Comissão de ' . $percentualComissao . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');

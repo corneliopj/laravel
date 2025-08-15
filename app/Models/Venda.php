@@ -23,7 +23,7 @@ class Venda extends Model
         'status',
         'reserva_id',
         'user_id', // ID do usuário (vendedor)
-        'percentual_comissao', // Percentual de comissão
+        'comissao_percentual', // Percentual de comissão
         'comissao_paga', // Flag para comissão paga
         'despesa_id', // ID da despesa de comissão gerada
         'comprador', // Adicionado, pois estava faltando no fillable da sua última versão
@@ -34,7 +34,7 @@ class Venda extends Model
         'valor_total' => 'decimal:2',
         'desconto' => 'decimal:2',
         'valor_final' => 'decimal:2',
-        'percentual_comissao' => 'decimal:2',
+        'comissao_percentual' => 'decimal:2',
         'comissao_paga' => 'boolean',
     ];
 

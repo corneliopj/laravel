@@ -4,8 +4,7 @@ namespace App\Http\Controllers\Financeiro;
 
 use App\Http\Controllers\Controller;
 use App\Models\Contracheque;
-use App\Models\Venda; // Importa o modelo de Venda para comissões
-// REMOVIDO: use App\Models\Financeiro\Despesa; // Não é mais necessário para buscar salário aqui
+use App\Models\Venda;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
@@ -24,22 +23,17 @@ class ContrachequeController extends Controller
         $ano = $request->input('ano', Carbon::now()->year);
         $userId = Auth::id();
 
-        // 1. Calcular Comissões do Mês (mantido, pois vem de Vendas)
-        $comissaoAcumuladaMes = 0;
-        if (Auth::check()) {
-            $dataInicioMes = Carbon::createFromDate($ano, $mes, 1)->startOfDay();
-            $dataFimMes = Carbon::createFromDate($ano, $mes)->endOfMonth()->endOfDay();
+        // 1. Buscar Vendas com Comissões do Mês
+        $dataInicioMes = Carbon::createFromDate($ano, $mes, 1)->startOfDay();
+        $dataFimMes = Carbon::createFromDate($ano, $mes)->endOfMonth()->endOfDay();
 
-            $comissaoAcumuladaMes = Venda::where('user_id', $userId)
-                ->where('comissao_paga', true)
-                ->whereBetween('data_venda', [$dataInicioMes, $dataFimMes])
-                ->with('despesaComissao')
-                ->get()
-                ->sum(function ($venda) {
-                    return $venda->despesaComissao ? $venda->despesaComissao->valor : 0;
-                });
-        }
-
+        // Removido 'comprador' do método with(), pois não é um relacionamento.
+        $vendasComComissao = Venda::where('user_id', $userId)
+            ->where('comissao_paga', true)
+            ->whereBetween('data_venda', [$dataInicioMes, $dataFimMes])
+            ->with('despesaComissao')
+            ->get();
+        
         // 2. Buscar TODOS os Lançamentos de Contracheque para o usuário e mês/ano
         $contrachequeLancamentos = Contracheque::where('user_id', $userId)
             ->whereMonth('data', $mes)
@@ -49,7 +43,7 @@ class ContrachequeController extends Controller
         // 3. Inicializa o sumário do contracheque
         $contrachequeSumario = [
             'salario' => 0,
-            'comissoes' => $comissaoAcumuladaMes, // Comissões vêm da lógica acima
+            'comissoes' => 0,
             'adiantamento' => 0,
             'cartao_credito' => 0,
             'outros_positivos' => 0,
@@ -60,8 +54,27 @@ class ContrachequeController extends Controller
             'lancamentos_detalhados' => []
         ];
 
-        // 4. Processa cada lançamento do modelo Contracheque para calcular os totais e detalhar
-        // O salário agora será um lançamento 'positivo' na tabela 'contracheques'
+        // 4. Adiciona os lançamentos de comissão primeiro
+        foreach ($vendasComComissao as $venda) {
+            if ($venda->despesaComissao) {
+                $valorComissao = $venda->despesaComissao->valor;
+                $contrachequeSumario['comissoes'] += $valorComissao;
+
+                // --- LINHA CORRIGIDA AQUI ---
+                // Agora acessa o campo 'comprador' diretamente, sem o relacionamento
+                $nomeComprador = $venda->comprador ?? 'Comprador Desconhecido';
+                $descricao = 'Comissão da Venda ' . $venda->id . ' / ' . $nomeComprador;
+                
+                $contrachequeSumario['lancamentos_detalhados'][] = [
+                    'data' => $venda->data_venda->format('d/m/Y'),
+                    'descricao' => $descricao,
+                    'valor' => $valorComissao,
+                    'tipo_lancamento' => 'positivo'
+                ];
+            }
+        }
+
+        // 5. Processa cada lançamento do modelo Contracheque para calcular os totais e detalhar
         foreach ($contrachequeLancamentos as $lancamento) {
             $lancamentoDetalhado = [
                 'id' => $lancamento->id,
@@ -72,15 +85,13 @@ class ContrachequeController extends Controller
             ];
 
             if ($lancamento->tipo_lancamento == 'positivo') {
-                // Identifica 'salário' especificamente (case-insensitive)
                 if (mb_strtolower($lancamento->descricao) == 'salário' || mb_strtolower($lancamento->descricao) == 'salario') {
                     $contrachequeSumario['salario'] += $lancamento->valor;
                 } else {
                     $contrachequeSumario['outros_positivos'] += $lancamento->valor;
                 }
             } else { // 'negativo'
-                $contrachequeSumario['descontos'] += $lancamento->valor; // Descontos são somados aqui
-                // Identifica 'adiantamento' e 'cartão de crédito' especificamente (case-insensitive)
+                $contrachequeSumario['descontos'] += $lancamento->valor;
                 if (mb_strtolower($lancamento->descricao) == 'adiantamento') {
                     $contrachequeSumario['adiantamento'] += $lancamento->valor;
                 } elseif (mb_strtolower($lancamento->descricao) == 'cartão de crédito' || mb_strtolower($lancamento->descricao) == 'cartao de credito') {
@@ -92,8 +103,7 @@ class ContrachequeController extends Controller
             $contrachequeSumario['lancamentos_detalhados'][] = $lancamentoDetalhado;
         }
 
-        // 5. Calcular Valor Bruto, Descontos e Saldo Líquido Finais
-        // Valor bruto inclui salário (do contracheque), comissões (de Venda) e outros positivos (do contracheque)
+        // 6. Calcular Valor Bruto, Descontos e Saldo Líquido Finais
         $contrachequeSumario['valor_bruto'] = $contrachequeSumario['salario'] + $contrachequeSumario['comissoes'] + $contrachequeSumario['outros_positivos'];
         $contrachequeSumario['saldo_liquido'] = $contrachequeSumario['valor_bruto'] - $contrachequeSumario['descontos'];
 
@@ -118,10 +128,9 @@ class ContrachequeController extends Controller
             'valor' => 'required|numeric|min:0.01',
             'tipo_lancamento' => 'required|in:positivo,negativo',
             'data' => 'required|date',
-            'user_id' => 'required|exists:users,id', // Garante que o user_id existe
+            'user_id' => 'required|exists:users,id',
         ]);
 
-        // Garante que o lançamento é para o usuário logado
         if ($request->user_id != Auth::id()) {
             return redirect()->back()->with('error', 'Você não tem permissão para adicionar lançamentos para outro usuário.');
         }
@@ -134,7 +143,6 @@ class ContrachequeController extends Controller
             'descricao' => $request->descricao,
         ]);
 
-        // Redireciona de volta para o contracheque do mês/ano do lançamento
         return redirect()->route('financeiro.contracheque.index', [
             'mes' => Carbon::parse($request->data)->month,
             'ano' => Carbon::parse($request->data)->year
@@ -149,7 +157,6 @@ class ContrachequeController extends Controller
      */
     public function destroy(Contracheque $contracheque)
     {
-        // Garante que o usuário logado só pode excluir seus próprios lançamentos
         if ($contracheque->user_id !== Auth::id()) {
             return redirect()->back()->with('error', 'Você não tem permissão para excluir este lançamento.');
         }
