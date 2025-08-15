@@ -177,11 +177,15 @@
                                                     </td>
                                                     <td class="text-right">R$ {{ number_format($lancamento['valor'], 2, ',', '.') }}</td>
                                                     <td>
-                                                        <form action="{{ route('financeiro.contracheque.destroy', $lancamento['id']) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este lançamento?');">
-                                                            @csrf
-                                                            @method('DELETE')
-                                                            <button type="submit" class="btn btn-danger btn-xs"><i class="fas fa-trash"></i></button>
-                                                        </form>
+                                                        @if (isset($lancamento['id']))
+                                                            <form action="{{ route('financeiro.contracheque.destroy', $lancamento['id']) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este lançamento?');">
+                                                                @csrf
+                                                                @method('DELETE')
+                                                                <button type="submit" class="btn btn-danger btn-xs" title="Excluir Lançamento"><i class="fas fa-trash"></i></button>
+                                                            </form>
+                                                        @else
+                                                            <button class="btn btn-secondary btn-xs" disabled title="Comissões são gerenciadas na respectiva venda e não podem ser excluídas aqui."><i class="fas fa-trash"></i></button>
+                                                        @endif
                                                     </td>
                                                 </tr>
                                             @empty

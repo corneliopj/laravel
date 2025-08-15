@@ -6,10 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Venda;
 use App\Models\Ave;
 use App\Models\Plantel;
-use App\Models\VendaItem;
-use App\Models\MovimentacaoPlantel;
-use App\Models\Categoria;
-use App\Models\Despesa;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -18,6 +14,9 @@ use Carbon\Carbon;
 
 class VendaController extends Controller
 {
+    /**
+     * Exibe a lista de vendas com filtros
+     */
     public function index(Request $request)
     {
         $query = Venda::query();
@@ -56,214 +55,241 @@ class VendaController extends Controller
         return view('financeiro.vendas.index', compact('vendas', 'compradores'));
     }
 
-   public function create()
-{
-    $compradores = Venda::distinct()->pluck('comprador')->toArray();
-    $metodosPagamento = [
-        'dinheiro' => 'Dinheiro',
-        'cartao' => 'Cartão',
-        'transferencia' => 'Transferência',
-        'pix' => 'PIX',
-        'outro' => 'Outro'
-    ];
-    
-    // Get available birds
-    $avesDisponiveis = Ave::where('vendavel', true)
+    /**
+     * Mostra o formulário para criar nova venda
+     */
+    public function create()
+    {
+        // Lista de compradores para autocomplete
+        $compradores = Venda::distinct()->pluck('comprador')->toArray();
+        
+        // Métodos de pagamento disponíveis
+        $metodosPagamento = [
+            'dinheiro' => 'Dinheiro',
+            'cartao' => 'Cartão',
+            'transferencia' => 'Transferência',
+            'pix' => 'PIX'
+        ];
+        
+        // Aves disponíveis para venda
+        $avesDisponiveis = Ave::where('vendavel', true)
                          ->where('ativo', true)
                          ->with('tipoAve', 'variacao')
                          ->get();
-    
-    // Get available plantels
-    $plantelOptions = Plantel::where('ativo', true)
+        
+        // Plantéis disponíveis
+        $plantelOptions = Plantel::where('ativo', true)
                            ->orderBy('identificacao_grupo')
                            ->get();
-    
-    return view('financeiro.vendas.create', compact(
-        'compradores', 
-        'metodosPagamento',
-        'avesDisponiveis',
-        'plantelOptions'
-    ));
-}
+        
+        return view('financeiro.vendas.create', compact(
+            'compradores', 
+            'metodosPagamento',
+            'avesDisponiveis',
+            'plantelOptions'
+        ));
+    }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'comprador' => 'required',
-            'data_venda' => 'required|date|before_or_equal:today',
-            'metodo_pagamento' => 'required',
-            'itens' => 'required|array|min:1',
-            'itens.*.descricao_item' => 'required',
-            'itens.*.quantidade' => 'required|numeric|min:1',
-            'itens.*.preco_unitario' => 'required|numeric|min:0.01',
+    /**
+     * Armazena uma nova venda no banco de dados
+     */
+  public function store(Request $request)
+{
+    // Validação dos dados
+    $request->validate([
+        'comprador' => 'required',
+        'data_venda' => 'required|date',
+        'metodo_pagamento' => 'required',
+        'itens' => 'required|array|min:1',
+        'itens.*.descricao_item' => 'required', // Corrigido para descricao_item
+        'itens.*.quantidade' => 'required|numeric|min:1',
+        'itens.*.preco_unitario' => 'required|numeric|min:0.01',
+    ]);
+
+    // Calcula o valor total dos itens
+    $valorTotal = collect($request->itens)->sum(function ($item) {
+        return $item['quantidade'] * $item['preco_unitario'];
+    });
+
+    // Aplica desconto
+    $desconto = $request->desconto ?? 0;
+    $valorFinal = $valorTotal - $desconto;
+
+    // Configura comissão de 15%
+    $comissaoPercentual = 15.0; // Nome da variável ajustado para comissao_percentual
+    $valorComissao = ($valorFinal * $comissaoPercentual) / 100;
+
+    // Usuário logado (vendedor)
+    $vendedor = auth()->user();
+
+    // Inicia transação para garantir integridade dos dados
+    DB::beginTransaction();
+    try {
+        // Cria a venda
+        $venda = Venda::create([
+            'comprador' => $request->comprador,
+            'data_venda' => $request->data_venda,
+            'metodo_pagamento' => $request->metodo_pagamento,
+            'valor_total' => $valorTotal,
+            'desconto' => $desconto,
+            'valor_final' => $valorFinal,
+            'observacoes' => $request->observacoes,
+            'status' => 'concluida',
+            'user_id' => $vendedor ? $vendedor->id : null,
+            'comissao_percentual' => $comissaoPercentual, // Nome da coluna corrigido
+            'comissao_paga' => true,
         ]);
-        
-        // Calcula o valor total
-        $valorTotal = collect($request->itens)->sum(function($item) {
-            return $item['quantidade'] * $item['preco_unitario'];
-        });
 
-        $desconto = $request->desconto ?? 0;
-        $valorFinal = $valorTotal - $desconto;
-        
-        // Configura comissão de 15%
-        $comissaoPercentual = 15.0; // Nome da variável ajustado para comissao_percentual
-        $valorComissao = ($valorFinal * $comissaoPercentual) / 100;
-        
-        // Usuário logado (vendedor)
-        $vendedor = auth()->user();
-        
-        \DB::beginTransaction();
-        try {
-            // Cria a venda
-            $venda = Venda::create([
-                'comprador' => $request->comprador,
-                'data_venda' => $request->data_venda,
-                'metodo_pagamento' => $request->metodo_pagamento,
-                'valor_total' => $valorTotal,
-                'desconto' => $desconto,
-                'valor_final' => $valorFinal,
-                'observacoes' => $request->observacoes,
-                'status' => 'concluida',
-                'user_id' => $vendedor ? $vendedor->id : null, // Vincula ao usuário logado
-                'percentual_comissao' => $comissaoPercentual, // Nome da coluna corrigido
-                'comissao_paga' => true,
+        // Cria os itens da venda
+        foreach ($request->itens as $item) {
+            $vendaItem = \App\Models\VendaItem::create([
+                'venda_id' => $venda->id,
+                'descricao_item' => $item['descricao_item'],
+                'ave_id' => $item['ave_id'] ?? null,
+                'plantel_id' => $item['plantel_id'] ?? null,
+                'quantidade' => $item['quantidade'],
+                'preco_unitario' => $item['preco_unitario'],
+                'valor_total_item' => $item['quantidade'] * $item['preco_unitario'],
             ]);
-            
-            // Cria os itens da venda
-            foreach ($request->itens as $item) {
-                $vendaItem = VendaItem::create([
-                    'venda_id' => $venda->id,
-                    'descricao_item' => $item['descricao_item'],
-                    'ave_id' => $item['ave_id'] ?? null,
-                    'plantel_id' => $item['plantel_id'] ?? null,
-                    'quantidade' => $item['quantidade'],
-                    'preco_unitario' => $item['preco_unitario'],
-                    'valor_total_item' => $item['quantidade'] * $item['preco_unitario'],
-                ]);
-                
-                // Atualiza status das aves vendidas
-                if (isset($item['ave_id'])) {
-                    $ave = Ave::find($item['ave_id']);
-                    if ($ave) {
-                        $ave->update([
-                            'ativo' => false,
-                            'vendavel' => false,
-                            'data_inativado' => now(),
-                        ]);
-                    }
-                }
-                
-                // Registra movimentação do plantel se aplicável
-                if (isset($item['plantel_id'])) {
-                    MovimentacaoPlantel::create([
-                        'plantel_id' => $item['plantel_id'],
-                        'tipo_movimentacao' => 'saida_venda',
-                        'quantidade' => $item['quantidade'],
-                        'data_movimentacao' => $request->data_venda,
-                        'observacoes' => 'Venda #' . $venda->id . ' - Comprador: ' . $request->comprador,
+
+            // Atualiza status das aves vendidas
+            if (isset($item['ave_id'])) {
+                $ave = Ave::find($item['ave_id']);
+                if ($ave) {
+                    $ave->update([
+                        'ativo' => false,
+                        'vendavel' => false,
+                        'data_inativado' => now(),
                     ]);
                 }
             }
-            
-            // Cria a despesa de comissão se há vendedor e comissão > 0
-            if ($vendedor && $valorComissao > 0) {
-                $categoriaComissao = Categoria::firstOrCreate(
-                    ['nome' => 'Comissões'],
-                    ['tipo' => 'despesa', 'descricao' => 'Despesas geradas por comissões de vendas.']
-                );
-                
-                $despesaComissao = Despesa::create([
-                    'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
-                    'valor' => $valorComissao,
-                    'data' => Carbon::now(),
-                    'categoria_id' => $categoriaComissao->id,
-                    'observacoes' => 'Comissão de ' . $percentualComissao . '% referente à venda #' . $venda->id,
-                ]);
-                
-                // Vincula a despesa de comissão à venda
-                $venda->update(['despesa_id' => $despesaComissao->id]);
-            }
-            
-            DB::commit();
-            
-            return redirect()->route('financeiro.vendas.show', $venda->id)
-                ->with('success', 'Venda registrada com sucesso! Comissão de ' . $percentualComissao . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');
-                
-        } catch (\Exception $e) {
-            \DB::rollBack();
-            \Log::error('Erro ao criar venda: ' . $e->getMessage());
-            
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
-        }
-    }
 
+            // Registra movimentação do plantel se aplicável
+            if (isset($item['plantel_id'])) {
+                \App\Models\MovimentacaoPlantel::create([
+                    'plantel_id' => $item['plantel_id'],
+                    'tipo_movimentacao' => 'saida_venda',
+                    'quantidade' => $item['quantidade'],
+                    'data_movimentacao' => $request->data_venda,
+                    'observacoes' => 'Venda #' . $venda->id . ' - Comprador: ' . $request->comprador,
+                ]);
+            }
+        }
+
+        // Cria despesa de comissão se houver vendedor e comissão > 0
+        if ($vendedor && $valorComissao > 0) {
+            $categoriaComissao = \App\Models\Categoria::firstOrCreate(
+                ['nome' => 'Comissões'],
+                ['descricao' => 'Despesas geradas por comissões de vendas.']
+            );
+
+            $despesaComissao = \App\Models\Despesa::create([
+                'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
+                'valor' => $valorComissao,
+                'data' => now(),
+                'categoria_id' => $categoriaComissao->id,
+                'observacoes' => 'Comissão de ' . $comissaoPercentual . '% referente à venda #' . $venda->id,
+            ]);
+
+            // Vincula a despesa de comissão à venda
+            $venda->update(['despesa_id' => $despesaComissao->id]);
+        }
+
+        DB::commit();
+
+        return redirect()->route('financeiro.vendas.show', $venda->id)
+            ->with('success', 'Venda registrada com sucesso! Comissão de ' . $comissaoPercentual . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Erro ao criar venda: ' . $e->getMessage());
+
+        return redirect()->back()
+            ->withInput()
+            ->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
+    }
+}
+
+    /**
+     * Exibe os detalhes de uma venda específica
+     */
     public function show($id)
     {
-        $venda = Venda::findOrFail($id);
+        $venda = Venda::with(['vendaItems.ave', 'vendaItems.plantel', 'user'])->findOrFail($id);
         return view('financeiro.vendas.show', compact('venda'));
     }
 
     /**
-     * Mostra o formulário para editar uma venda existente.
+     * Mostra o formulário para editar uma venda existente
      */
-    public function edit(string $id)
+    public function edit($id)
     {
         $venda = Venda::with(['user', 'despesaComissao', 'vendaItems.ave.tipoAve', 'vendaItems.plantel'])->findOrFail($id);
-        $metodosPagamento = ['Dinheiro' => 'Dinheiro', 'Cartão de Crédito' => 'Cartão de Crédito', 'Cartão de Débito' => 'Cartão de Débito', 'Pix' => 'Pix', 'Transferência Bancária' => 'Transferência Bancária', 'Outro' => 'Outro'];
+        $metodosPagamento = [
+            'dinheiro' => 'Dinheiro',
+            'cartao' => 'Cartão',
+            'transferencia' => 'Transferência',
+            'pix' => 'PIX'
+        ];
         $statusOptions = ['concluida' => 'Concluída', 'pendente' => 'Pendente', 'cancelada' => 'Cancelada'];
         
         // Aves que já estão na venda atual devem estar disponíveis
         $avesNaVendaAtual = $venda->vendaItems->pluck('ave_id')->filter()->toArray();
-		$compradores = Venda::distinct()->pluck('comprador')->toArray(); 
+        $compradores = Venda::distinct()->pluck('comprador')->toArray(); 
 
-        // Aves que estão ativas e vendáveis, ou que já estão na venda atual
-        $avesDisponiveis = Ave::where('vendavel', true)
-                               ->where('ativo', true)
-                               ->orWhereIn('id', $avesNaVendaAtual) // Inclui aves que já estão nesta venda
-                               ->with('tipoAve', 'variacao')
-                               ->get();
+        // Aves disponíveis para seleção
+        $avesDisponiveis = Ave::where(function($query) use ($avesNaVendaAtual) {
+                                $query->where('vendavel', true)
+                                      ->where('ativo', true)
+                                      ->orWhereIn('id', $avesNaVendaAtual);
+                            })
+                            ->with('tipoAve', 'variacao')
+                            ->get();
 
         $plantelOptions = Plantel::where('ativo', true)->orderBy('identificacao_grupo')->get();
 
-        return view('financeiro.vendas.edit', compact('venda','compradores', 'metodosPagamento', 'statusOptions', 'avesDisponiveis', 'plantelOptions'));
+        return view('financeiro.vendas.edit', compact(
+            'venda',
+            'compradores', 
+            'metodosPagamento', 
+            'statusOptions', 
+            'avesDisponiveis', 
+            'plantelOptions'
+        ));
     }
 
     /**
-     * Atualiza uma venda existente no banco de dados.
+     * Atualiza uma venda existente no banco de dados
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
         $venda = Venda::findOrFail($id);
 
+        // Validação dos dados
         $request->validate([
             'data_venda' => 'required|date|before_or_equal:today',
-            'comprador' => 'nullable|string|max:255', // Adicionado ao validate
+            'comprador' => 'nullable|string|max:255',
             'metodo_pagamento' => 'required|string|max:255',
             'observacoes' => 'nullable|string|max:1000',
             'desconto' => 'nullable|numeric|min:0',
-            'comissao_percentual' => 'nullable|numeric|min:0|max:100', // NOVO: Validação
+            'comissao_percentual' => 'nullable|numeric|min:0|max:100',
             'status' => ['required', Rule::in(['concluida', 'pendente', 'cancelada'])],
-            'items' => 'required|array|min:1',
-            'items.*.descricao_item' => 'required|string|max:255',
-            'items.*.ave_id' => 'nullable|exists:aves,id',
-            'items.*.plantel_id' => 'nullable|exists:plantel,id', // Adicionado validação
-            'items.*.quantidade' => 'required|integer|min:1',
-            'items.*.preco_unitario' => 'required|numeric|min:0.01',
+            'itens' => 'required|array|min:1',
+            'itens.*.descricao_item' => 'required|string|max:255',
+            'itens.*.ave_id' => 'nullable|exists:aves,id',
+            'itens.*.plantel_id' => 'nullable|exists:plantel,id',
+            'itens.*.quantidade' => 'required|integer|min:1',
+            'itens.*.preco_unitario' => 'required|numeric|min:0.01',
         ]);
 
         DB::beginTransaction();
         try {
-            $valorTotalItens = 0;
-            foreach ($request->items as $item) {
-                $quantidade = (float) $item['quantidade'];
-                $precoUnitario = (float) $item['preco_unitario'];
-                $valorTotalItens += ($quantidade * $precoUnitario);
-            }
-
-            $desconto = (float) ($request->desconto ?? 0);
+            // Calcula o valor total dos itens
+            $valorTotalItens = collect($request->itens)->sum(function($item) {
+                return $item['quantidade'] * $item['preco_unitario'];
+            });
+            
+            $desconto = $request->desconto ?? 0;
             $valorFinalVenda = $valorTotalItens - $desconto;
 
             if ($valorFinalVenda < 0) {
@@ -271,12 +297,14 @@ class VendaController extends Controller
                 return redirect()->back()->withInput()->with('error', 'O valor final da venda não pode ser negativo.');
             }
 
-            $percentualComissao = (float) ($request->comissao_percentual ?? 0);
+            // Calcula comissão
+            $percentualComissao = $request->comissao_percentual ?? 0;
             $valorComissao = ($valorFinalVenda * $percentualComissao) / 100;
 
+            // Prepara dados para atualização da venda
             $vendaData = [
                 'data_venda' => $request->data_venda,
-                'comprador' => $request->comprador, // Salvar comprador
+                'comprador' => $request->comprador,
                 'valor_total' => $valorTotalItens,
                 'desconto' => $desconto,
                 'valor_final' => $valorFinalVenda,
@@ -284,169 +312,136 @@ class VendaController extends Controller
                 'observacoes' => $request->observacoes,
                 'status' => $request->status,
                 'percentual_comissao' => $percentualComissao,
-                'valor_comissao' => $valorComissao, // Salvar valor da comissão
+                'valor_comissao' => $valorComissao,
             ];
 
+            // Lógica de comissão
             $comissaoAtivada = ($percentualComissao > 0);
-            $vendedor = Auth::user();
+            $vendedor = auth()->user();
 
-            // Lógica de Comissão
             if ($comissaoAtivada && $vendedor) {
                 $vendaData['user_id'] = $vendedor->id;
                 $vendaData['comissao_paga'] = true;
 
-                $categoriaComissao = Categoria::firstOrCreate(
+                $categoriaComissao = \App\Models\Categoria::firstOrCreate(
                     ['nome' => 'Comissões'],
                     ['descricao' => 'Despesas geradas por comissões de vendas.']
                 );
 
                 if ($venda->despesa_id) {
-                    $despesa = Despesa::find($venda->despesa_id);
+                    $despesa = \App\Models\Despesa::find($venda->despesa_id);
                     if ($despesa) {
                         $despesa->update([
                             'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
                             'valor' => $valorComissao,
-                            'data' => Carbon::now(),
+                            'data' => now(),
                             'categoria_id' => $categoriaComissao->id,
                             'observacoes' => 'Comissão referente à venda #' . $venda->id,
                         ]);
-                    } else { // Despesa_id existia mas o registro foi apagado
-                        $despesa = Despesa::create([
-                            'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
-                            'valor' => $valorComissao,
-                            'data' => Carbon::now(),
-                            'categoria_id' => $categoriaComissao->id,
-                            'observacoes' => 'Comissão referente à venda #' . $venda->id,
-                        ]);
-                        $vendaData['despesa_id'] = $despesa->id;
                     }
-                } else { // Não existia despesa_id
-                    $despesa = Despesa::create([
+                } else {
+                    $despesa = \App\Models\Despesa::create([
                         'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
                         'valor' => $valorComissao,
-                        'data' => Carbon::now(),
+                        'data' => now(),
                         'categoria_id' => $categoriaComissao->id,
                         'observacoes' => 'Comissão referente à venda #' . $venda->id,
                     ]);
                     $vendaData['despesa_id'] = $despesa->id;
                 }
-            } elseif (!$comissaoAtivada && $venda->despesa_id) { // Comissão desativada e despesa existia
-                $despesa = Despesa::find($venda->despesa_id);
+            } elseif ($venda->despesa_id) {
+                $despesa = \App\Models\Despesa::find($venda->despesa_id);
                 if ($despesa) {
                     $despesa->delete();
                 }
                 $vendaData['user_id'] = null;
                 $vendaData['comissao_paga'] = false;
                 $vendaData['despesa_id'] = null;
-            } elseif (!$comissaoAtivada && !$venda->despesa_id) { // Comissão desativada e despesa não existia
-                $vendaData['user_id'] = null;
-                $vendaData['comissao_paga'] = false;
-                $vendaData['despesa_id'] = null;
             }
 
-            // Reverter o status das aves/plantéis dos itens antigos
+            // Reverte status dos itens antigos
             foreach ($venda->vendaItems as $oldItem) {
                 if ($oldItem->ave_id) {
                     $ave = Ave::find($oldItem->ave_id);
                     if ($ave) {
-                        $ave->ativo = true;
-                        $ave->vendavel = true;
-                        $ave->data_inativado = null;
-                        $ave->save();
+                        $ave->update([
+                            'ativo' => true,
+                            'vendavel' => true,
+                            'data_inativado' => null
+                        ]);
                     }
                 } elseif ($oldItem->plantel_id) {
-                    MovimentacaoPlantel::create([
+                    \App\Models\MovimentacaoPlantel::create([
                         'plantel_id' => $oldItem->plantel_id,
                         'tipo_movimentacao' => 'entrada',
                         'quantidade' => $oldItem->quantidade,
-                        'data_movimentacao' => Carbon::now(),
+                        'data_movimentacao' => now(),
                         'observacoes' => 'Ajuste de reversão de venda (ID Venda: ' . $venda->id . ') devido a edição.',
                     ]);
                 }
             }
-            // Deletar todos os itens antigos da venda
+
+            // Remove itens antigos
             $venda->vendaItems()->delete();
 
-            // Processar e criar os novos itens
-            foreach ($request->items as $itemData) {
-                $itemQuantidade = (float) $itemData['quantidade'];
-                $itemPrecoUnitario = (float) $itemData['preco_unitario'];
-                $itemTotal = $itemQuantidade * $itemPrecoUnitario;
+            // Cria novos itens
+            foreach ($request->itens as $itemData) {
+                $itemTotal = $itemData['quantidade'] * $itemData['preco_unitario'];
 
-                $vendaItem = VendaItem::create([
+                $vendaItem = \App\Models\VendaItem::create([
                     'venda_id' => $venda->id,
                     'descricao_item' => $itemData['descricao_item'],
                     'ave_id' => $itemData['ave_id'] ?? null,
                     'plantel_id' => $itemData['plantel_id'] ?? null,
-                    'quantidade' => $itemQuantidade,
-                    'preco_unitario' => $itemPrecoUnitario,
+                    'quantidade' => $itemData['quantidade'],
+                    'preco_unitario' => $itemData['preco_unitario'],
                     'valor_total_item' => $itemTotal,
                 ]);
 
-                // Lógica de inativação/movimentação para novos itens
+                // Atualiza status dos novos itens
                 if ($vendaItem->ave_id) {
                     $ave = Ave::find($vendaItem->ave_id);
                     if ($ave) {
-                        $ave->ativo = false;
-                        $ave->vendavel = false;
-                        $ave->data_inativado = Carbon::now();
-                        $ave->save();
-                    }
-                } elseif ($vendaItem->plantel_id) {
-                    $plantel = Plantel::find($vendaItem->plantel_id);
-                    if ($plantel) {
-                        MovimentacaoPlantel::create([
-                            'plantel_id' => $plantel->id,
-                            'tipo_movimentacao' => 'saida_venda',
-                            'quantidade' => $vendaItem->quantidade,
-                            'data_movimentacao' => $venda->data_venda,
-                            'observacoes' => 'Venda de ' . $vendaItem->quantidade . ' aves do plantel ' . $plantel->identificacao_grupo . ' (Atualização de venda ID: ' . $venda->id . '). Comprador: ' . ($request->comprador ?? 'Não informado'),
+                        $ave->update([
+                            'ativo' => false,
+                            'vendavel' => false,
+                            'data_inativado' => now()
                         ]);
                     }
+                } elseif ($vendaItem->plantel_id) {
+                    \App\Models\MovimentacaoPlantel::create([
+                        'plantel_id' => $vendaItem->plantel_id,
+                        'tipo_movimentacao' => 'saida_venda',
+                        'quantidade' => $vendaItem->quantidade,
+                        'data_movimentacao' => $venda->data_venda,
+                        'observacoes' => 'Venda de ' . $vendaItem->quantidade . ' aves do plantel ' . $vendaItem->plantel->identificacao_grupo . ' (Atualização de venda ID: ' . $venda->id . ')',
+                    ]);
                 }
             }
 
+            // Atualiza venda
             $venda->update($vendaData);
 
-            // Lógica para reverter status de aves se a venda for cancelada
-            if ($venda->isDirty('status')) {
-                if ($venda->status == 'cancelada' && $venda->getOriginal('status') != 'cancelada') {
+            // Lógica para cancelamento/reversão
+            if ($venda->wasChanged('status')) {
+                if ($venda->status == 'cancelada') {
                     foreach ($venda->vendaItems as $item) {
                         if ($item->ave_id) {
                             $ave = Ave::find($item->ave_id);
                             if ($ave) {
-                                $ave->ativo = true;
-                                $ave->vendavel = true;
-                                $ave->data_inativado = null;
-                                $ave->save();
+                                $ave->update([
+                                    'ativo' => true,
+                                    'vendavel' => true,
+                                    'data_inativado' => null
+                                ]);
                             }
                         } elseif ($item->plantel_id) {
-                             MovimentacaoPlantel::create([
+                            \App\Models\MovimentacaoPlantel::create([
                                 'plantel_id' => $item->plantel_id,
                                 'tipo_movimentacao' => 'entrada',
                                 'quantidade' => $item->quantidade,
-                                'data_movimentacao' => Carbon::now(),
+                                'data_movimentacao' => now(),
                                 'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido ao cancelamento.',
-                            ]);
-                        }
-                    }
-                } elseif ($venda->status == 'concluida' && $venda->getOriginal('status') == 'cancelada') {
-                    foreach ($venda->vendaItems as $item) {
-                        if ($item->ave_id) {
-                            $ave = Ave::find($item->ave_id);
-                            if ($ave) {
-                                $ave->ativo = false;
-                                $ave->vendavel = false;
-                                $ave->data_inativado = Carbon::now();
-                                $ave->save();
-                            }
-                        } elseif ($item->plantel_id) {
-                            MovimentacaoPlantel::create([
-                                'plantel_id' => $item->plantel_id,
-                                'tipo_movimentacao' => 'saida_venda',
-                                'quantidade' => $item->quantidade,
-                                'data_movimentacao' => Carbon::now(),
-                                'observacoes' => 'Re-aplicação de venda (ID Venda: ' . $venda->id . ') devido à reativação.',
                             ]);
                         }
                     }
@@ -454,92 +449,95 @@ class VendaController extends Controller
             }
 
             DB::commit();
-            Log::info('Venda atualizada com sucesso: ' . $venda->id);
-            return redirect()->route('financeiro.vendas.show', $venda->id)->with('success', 'Venda atualizada com sucesso!');
+            return redirect()->route('financeiro.vendas.show', $venda->id)
+                ->with('success', 'Venda atualizada com sucesso!');
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao atualizar venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
-            return redirect()->back()->withInput()->with('error', 'Erro ao atualizar venda: ' . $e->getMessage());
+            Log::error("Erro ao atualizar venda: " . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erro ao atualizar venda: ' . $e->getMessage());
         }
     }
 
     /**
-     * Remove uma venda do banco de dados.
+     * Remove uma venda do banco de dados
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
         DB::beginTransaction();
         try {
             $venda = Venda::findOrFail($id);
 
-            // Se houver uma despesa de comissão, excluí-la
+            // Remove despesa de comissão se existir
             if ($venda->despesa_id) {
-                $despesa = Despesa::find($venda->despesa_id);
+                $despesa = \App\Models\Despesa::find($venda->despesa_id);
                 if ($despesa) {
                     $despesa->delete();
                 }
             }
 
-            // Reverter o status das aves/plantéis associados
+            // Reverte status dos itens
             foreach ($venda->vendaItems as $item) {
                 if ($item->ave_id) {
                     $ave = Ave::find($item->ave_id);
                     if ($ave) {
-                        $ave->ativo = true;
-                        $ave->vendavel = true;
-                        $ave->data_inativado = null;
-                        $ave->save();
+                        $ave->update([
+                            'ativo' => true,
+                            'vendavel' => true,
+                            'data_inativado' => null
+                        ]);
                     }
                 } elseif ($item->plantel_id) {
-                    MovimentacaoPlantel::create([
+                    \App\Models\MovimentacaoPlantel::create([
                         'plantel_id' => $item->plantel_id,
                         'tipo_movimentacao' => 'entrada',
                         'quantidade' => $item->quantidade,
-                        'data_movimentacao' => Carbon::now(),
-                        'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido à exclusão do registro.',
+                        'data_movimentacao' => now(),
+                        'observacoes' => 'Reversão de venda (ID Venda: ' . $venda->id . ') devido à exclusão.',
                     ]);
                 }
             }
-            // Excluir os itens da venda
-            $venda->vendaItems()->delete();
 
-            // Excluir a venda
+            // Remove itens e depois a venda
+            $venda->vendaItems()->delete();
             $venda->delete();
+
             DB::commit();
-            Log::info('Venda excluída com sucesso: ' . $venda->id);
-            return redirect()->route('financeiro.vendas.index')->with('success', 'Venda excluída com sucesso!');
+            return redirect()->route('financeiro.vendas.index')
+                ->with('success', 'Venda excluída com sucesso!');
+
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error("Erro ao excluir venda: " . $e->getMessage() . " - Linha: " . $e->getLine() . " - Arquivo: " . $e->getFile());
-            return redirect()->back()->with('error', 'Erro ao excluir venda: ' . $e->getMessage());
+            Log::error("Erro ao excluir venda: " . $e->getMessage());
+            return redirect()->back()
+                ->with('error', 'Erro ao excluir venda: ' . $e->getMessage());
         }
     }
 
     /**
-     * Busca aves disponíveis para venda via AJAX para o PDV.
+     * Busca aves disponíveis para venda via AJAX
      */
     public function searchAvesForSale(Request $request)
     {
         $query = $request->get('q');
-        Log::debug("searchAvesForSale: Query recebida: '{$query}'");
-
+        
         if (empty($query)) {
-            Log::debug("searchAvesForSale: Query vazia, retornando array vazio.");
             return response()->json([]);
         }
 
         $aves = Ave::where('vendavel', true)
-                    ->where('ativo', true)
-                    ->where(function($q) use ($query) {
-                        $q->where('matricula', 'like', '%' . $query . '%')
-                          ->orWhereHas('tipoAve', function($q2) use ($query) {
-                              $q2->where('nome', 'like', '%' . $query . '%');
-                          });
-                    })
-                    ->with('tipoAve', 'variacao')
-                    ->limit(10)
-                    ->get();
+                ->where('ativo', true)
+                ->where(function($q) use ($query) {
+                    $q->where('matricula', 'like', '%' . $query . '%')
+                      ->orWhereHas('tipoAve', function($q2) use ($query) {
+                          $q2->where('nome', 'like', '%' . $query . '%');
+                      });
+                })
+                ->with('tipoAve', 'variacao')
+                ->limit(10)
+                ->get();
 
         $results = $aves->map(function($ave) {
             $tipoAveNome = $ave->tipoAve->nome ?? 'N/A';
@@ -555,7 +553,6 @@ class VendaController extends Controller
             ];
         });
 
-        Log::debug('searchAvesForSale: Resultados retornados: ' . json_encode($results->toArray()));
         return response()->json($results);
     }
 }
