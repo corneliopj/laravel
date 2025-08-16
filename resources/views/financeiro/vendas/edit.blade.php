@@ -157,14 +157,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Função para inicializar uma linha de item
     function initializeItemRow(rowElement) {
-               const tipoItemRadios = rowElement.querySelectorAll('input[type="radio"]');
+        const tipoItemRadios = rowElement.querySelectorAll('input[type="radio"]');
         const divAveId = rowElement.querySelector('[id^="div_ave_id_"]');
         const divPlantelId = rowElement.querySelector('[id^="div_plantel_id_"]');
         const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
-        
+        const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
+
         function toggleItemFields() {
             const selectedValue = rowElement.querySelector('input[type="radio"]:checked').value;
-            
+
             if (selectedValue === 'individual') {
                 divAveId.style.display = 'block';
                 divPlantelId.style.display = 'none';
@@ -174,19 +175,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 divAveId.style.display = 'none';
                 divPlantelId.style.display = 'block';
                 quantidadeInput.readOnly = false;
-            } else {
+            } else { // 'outro'
                 divAveId.style.display = 'none';
                 divPlantelId.style.display = 'none';
                 quantidadeInput.readOnly = false;
             }
+            updateTotals(); // Atualiza os totais quando o tipo de item muda
         }
-        
+
         tipoItemRadios.forEach(radio => {
             radio.addEventListener('change', toggleItemFields);
         });
-        
+
         toggleItemFields();
-        
+
         // Adicionar evento para o botão de remover
         const removeBtn = rowElement.querySelector('.remove-item-btn');
         if (removeBtn) {
@@ -195,28 +197,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateTotals();
             });
         }
-        
+
         // Adicionar eventos para atualizar totais
-        const quantidadeInput = rowElement.querySelector('input[name$="[quantidade]"]');
-        const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
-        
         if (quantidadeInput) quantidadeInput.addEventListener('input', updateTotals);
-        if (precoInput) precoInput.addEventListener('input', updateTotals);dValue = rowElement.querySelector('input[type="radio"]:checked').value;
-            
-            if (selectedValue === 'individual') {
-                divAveId.style.display = 'block';
-                divPlantelId.style.display = 'none';
-                quantidadeInput.readOnly = true;
-                quantidadeInput.value = 1;
-            } else if (selectedValue === 'plantel') {
-                divAveId.style.display = 'none';
-                divPlantelId.style.display = 'block';
-                quantidadeInput.readOnly = false;
-            } else {
-                divAveId.style.display = 'none';
-                divPlantelId.style.display = 'none';
-                quantidadeInput.readOnly = false;
-            }
+        if (precoInput) precoInput.addEventListener('input', updateTotals);
     }
 
     // Função para atualizar totais
