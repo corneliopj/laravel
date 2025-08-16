@@ -164,8 +164,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const precoInput = rowElement.querySelector('input[name$="[preco_unitario]"]');
 
         function toggleItemFields() {
-            const selectedValue = rowElement.querySelector('input[type="radio"]:checked').value;
+            const checkedRadio = rowElement.querySelector('input[type="radio"]:checked');
 
+            // Se nenhum rádio estiver selecionado (ex: nova linha ou item mal configurado),
+            // define um estado padrão e sai para evitar o erro.
+            if (!checkedRadio) {
+                if (divAveId) divAveId.style.display = 'none';
+                if (divPlantelId) divPlantelId.style.display = 'none';
+                if (quantidadeInput) quantidadeInput.readOnly = false;
+                return;
+            }
+            const selectedValue = checkedRadio.value;
             if (selectedValue === 'individual') {
                 divAveId.style.display = 'block';
                 divPlantelId.style.display = 'none';
