@@ -70,6 +70,17 @@
                                         @enderror
                                     </div>
                                     <div class="form-group">
+                                        <label>Status</label>
+                                        <select name="status" class="form-control" required>
+                                            @foreach($statusOptions as $key => $value)
+                                                <option value="{{ $key }}" {{ old('status', $venda->status) == $key ? 'selected' : '' }}>{{ $value }}</option>
+                                            @endforeach
+                                        </select>
+                                        @error('status')
+                                            <div class="text-danger">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="form-group">
                                         <label>Observações</label>
                                         <textarea name="observacoes" class="form-control" rows="2">{{ old('observacoes', $venda->observacoes) }}</textarea>
                                         @error('observacoes')
@@ -111,7 +122,7 @@
                                         <i class="fas fa-plus"></i> Adicionar Item
                                     </button>
                                     <div class="row mt-3">
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
                                             <div class="form-group">
                                                 <label>Desconto (R$)</label>
                                                 <input type="number" name="desconto" id="desconto" class="form-control" value="{{ old('desconto', $venda->desconto) }}" min="0" step="0.01">
@@ -120,7 +131,16 @@
                                                 @enderror
                                             </div>
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Comissão (%)</label>
+                                                <input type="number" name="comissao_percentual" id="comissao_percentual" class="form-control" value="{{ old('comissao_percentual', $venda->comissao_percentual) }}" min="0" max="100" step="0.01">
+                                                @error('comissao_percentual')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 align-self-center">
                                             <h4>Total: <span id="total-venda">R$ {{ number_format($venda->valor_final, 2, ',', '.') }}</span></h4>
                                         </div>
                                     </div>

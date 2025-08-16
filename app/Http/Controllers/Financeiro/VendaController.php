@@ -311,8 +311,7 @@ class VendaController extends Controller
                 'metodo_pagamento' => $request->metodo_pagamento,
                 'observacoes' => $request->observacoes,
                 'status' => $request->status,
-                'percentual_comissao' => $percentualComissao,
-                'valor_comissao' => $valorComissao,
+                'comissao_percentual' => $percentualComissao,
             ];
 
             // Lógica de comissão
