@@ -317,17 +317,45 @@ class ReservaController extends Controller
 
         DB::beginTransaction();
         try {
+            // Identifica o vendedor e calcula a comissão
+            $vendedor = auth()->user();
+            $valorFinalVenda = $reserva->valor_total; // O valor final da venda é o valor total da reserva
+            $comissaoPercentual = 15.0; // Taxa de comissão padrão
+            $valorComissao = ($valorFinalVenda * $comissaoPercentual) / 100;
+
             $venda = Venda::create([
                 'comprador' => $reserva->nome_cliente,
                 'data_venda' => Carbon::now(),
                 'valor_total' => $reserva->valor_total,
                 'desconto' => 0,
-                'valor_final' => (float) $reserva->valor_total - (float) $reserva->pagamento_parcial, // Garante que a subtração é numérica
+                'valor_final' => $valorFinalVenda,
                 'metodo_pagamento' => 'A Definir',
                 'observacoes' => 'Venda gerada a partir da Reserva #' . $reserva->numero_reserva . '. Pagamento parcial recebido: R$ ' . number_format($reserva->pagamento_parcial, 2, ',', '.'),
                 'status' => 'pendente',
                 'reserva_id' => $reserva->id,
+                'user_id' => $vendedor ? $vendedor->id : null,
+                'comissao_percentual' => $comissaoPercentual,
+                'comissao_paga' => true, // Assume que a comissão é devida no momento da conversão
             ]);
+
+            // Cria a despesa de comissão se houver vendedor e valor de comissão
+            if ($vendedor && $valorComissao > 0) {
+                $categoriaComissao = \App\Models\Categoria::firstOrCreate(
+                    ['nome' => 'Comissões', 'tipo' => 'despesa'],
+                    ['descricao' => 'Despesas geradas por comissões de vendas.']
+                );
+
+                $despesaComissao = \App\Models\Despesa::create([
+                    'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
+                    'valor' => $valorComissao,
+                    'data' => now(),
+                    'categoria_id' => $categoriaComissao->id,
+                    'observacoes' => 'Comissão de ' . $comissaoPercentual . '% referente à venda #' . $venda->id . ' (origem: Reserva #' . $reserva->numero_reserva . ')',
+                ]);
+
+                $venda->despesa_id = $despesaComissao->id;
+                $venda->save();
+            }
 
             foreach ($reserva->items as $reservaItem) {
                 VendaItem::create([
@@ -354,7 +382,7 @@ class ReservaController extends Controller
             $reserva->save();
 
             DB::commit();
-            return redirect()->route('financeiro.vendas.show', $venda->id)->with('success', 'Reserva convertida em venda com sucesso! Venda #' . $venda->id);
+            return redirect()->route('financeiro.vendas.show', $venda->id)->with('success', 'Reserva convertida em venda com sucesso! Venda #' . $venda->id . '. Comissão de R$ ' . number_format($valorComissao, 2, ',', '.') . ' gerada.');
 
         } catch (\Exception $e) {
             DB::rollBack();
