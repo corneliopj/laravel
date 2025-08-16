@@ -318,6 +318,7 @@ class ReservaController extends Controller
         DB::beginTransaction();
         try {
             $venda = Venda::create([
+                'comprador' => $reserva->nome_cliente,
                 'data_venda' => Carbon::now(),
                 'valor_total' => $reserva->valor_total,
                 'desconto' => 0,
