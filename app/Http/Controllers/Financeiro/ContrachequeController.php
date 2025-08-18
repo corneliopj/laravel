@@ -23,6 +23,22 @@ class ContrachequeController extends Controller
         $ano = $request->input('ano', Carbon::now()->year);
         $userId = Auth::id();
 
+        // Prepara o nome do mês para o título do card na view.
+        // Usar getTranslatedMonthName() é mais robusto para localização.
+        $nomeMes = Carbon::create(null, $mes, 1)->locale('pt_BR')->getTranslatedMonthName();
+
+        // Prepara a lista de meses para o dropdown do filtro na view.
+        $mesesDoAno = [];
+        for ($i = 1; $i <= 12; $i++) {
+            $mesesDoAno[] = [
+                'numero' => $i,
+                'nome' => Carbon::create(null, $i, 1)->locale('pt_BR')->getTranslatedMonthName()
+            ];
+        }
+        // Prepara a lista de anos para o dropdown do filtro na view.
+        $anoAtual = Carbon::now()->year;
+        $anosDisponiveis = range($anoAtual - 5, $anoAtual + 1);
+
         // 1. Buscar Vendas com Comissões do Mês
         $dataInicioMes = Carbon::createFromDate($ano, $mes, 1)->startOfDay();
         $dataFimMes = Carbon::createFromDate($ano, $mes)->endOfMonth()->endOfDay();

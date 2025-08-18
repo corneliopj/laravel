@@ -47,17 +47,17 @@
                                     <div class="form-group mr-3">
                                         <label for="mes" class="mr-2">Mês:</label>
                                         <select name="mes" id="mes" class="form-control form-control-sm">
-                                            @for ($i = 1; $i <= 12; $i++)
-                                                <option value="{{ $i }}" {{ $mes == $i ? 'selected' : '' }}>{{ Carbon::create(null, $i, 1)->locale('pt_BR')->monthName }}</option>
-                                            @endfor
+                                            @foreach ($mesesDoAno as $mesItem)
+                                                <option value="{{ $mesItem['numero'] }}" {{ $mes == $mesItem['numero'] ? 'selected' : '' }}>{{ ucfirst($mesItem['nome']) }}</option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     <div class="form-group mr-3">
                                         <label for="ano" class="mr-2">Ano:</label>
                                         <select name="ano" id="ano" class="form-control form-control-sm">
-                                            @for ($i = Carbon::now()->year - 5; $i <= Carbon::now()->year + 1; $i++)
-                                                <option value="{{ $i }}" {{ $ano == $i ? 'selected' : '' }}>{{ $i }}</option>
-                                            @endfor
+                                            @foreach ($anosDisponiveis as $anoItem)
+                                                <option value="{{ $anoItem }}" {{ $ano == $anoItem ? 'selected' : '' }}>{{ $anoItem }}</option>
+                                            @endforeach
                                         </select>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm">Aplicar Filtro</button>
@@ -100,7 +100,7 @@
                             <div class="card-header">
                                 <h3 class="card-title">
                                     <i class="fas fa-file-invoice-dollar"></i>
-                                    Contracheque do Mês ({{ Carbon::create(null, $mes, 1)->locale('pt_BR')->monthName }}/{{ $ano }})
+                                    Contracheque do Mês ({{ ucfirst($nomeMes) }}/{{ $ano }})
                                 </h3>
                             </div>
                             <div class="card-body">
