@@ -166,7 +166,7 @@
                                         <tbody>
                                             @forelse ($contrachequeSumario['lancamentos_detalhados'] as $lancamento)
                                                 <tr>
-                                         "vendasvenda"           <td>{{ $lancamento['data'] }}</td>
+                                                    <td>{{ $lancamento['data'] }}</td>
                                                     <td>
                                                         @if (isset($lancamento['venda_id']))
                                                             <a href="javascript:void(0);" 
