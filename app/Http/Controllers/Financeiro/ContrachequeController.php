@@ -140,8 +140,11 @@ class ContrachequeController extends Controller
 
         return view('financeiro.contracheque.index', compact(
             'contrachequeSumario',
+            'nomeMes',
             'mes',
-            'ano'
+            'ano',
+            'mesesDoAno',
+            'anosDisponiveis'
         ));
     }
 
