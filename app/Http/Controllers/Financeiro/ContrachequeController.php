@@ -47,7 +47,7 @@ class ContrachequeController extends Controller
         $vendasComComissao = Venda::where('user_id', $userId)
             ->where('comissao_paga', true)
             ->whereBetween('data_venda', [$dataInicioMes, $dataFimMes])
-            ->with('despesaComissao')
+            ->with('despesaComissao', 'vendaItems')
             ->get();
         
         // 2. Buscar TODOS os Lançamentos de Contracheque para o usuário e mês/ano
@@ -85,7 +85,21 @@ class ContrachequeController extends Controller
                     'data' => $venda->data_venda->format('d/m/Y'),
                     'descricao' => $descricao,
                     'valor' => $valorComissao,
-                    'tipo_lancamento' => 'positivo'
+                    'tipo_lancamento' => 'positivo',
+                    'venda_id' => $venda->id, // ID para identificar a venda e criar o popover
+                    // Detalhes da venda para o popover
+                    'venda_detalhes' => [
+                        'valor_final' => $venda->valor_final,
+                        'observacoes' => $venda->observacoes,
+                        'itens' => $venda->vendaItems->map(function ($item) {
+                            return [
+                                'descricao' => $item->descricao_item,
+                                'quantidade' => $item->quantidade,
+                                'preco_unitario' => $item->preco_unitario,
+                                'valor_total_item' => $item->valor_total_item,
+                            ];
+                        })
+                    ]
                 ];
             }
         }

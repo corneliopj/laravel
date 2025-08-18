@@ -166,8 +166,34 @@
                                         <tbody>
                                             @forelse ($contrachequeSumario['lancamentos_detalhados'] as $lancamento)
                                                 <tr>
-                                                    <td>{{ $lancamento['data'] }}</td>
-                                                    <td>{{ $lancamento['descricao'] }}</td>
+                                         "vendasvenda"           <td>{{ $lancamento['data'] }}</td>
+                                                    <td>
+                                                        @if (isset($lancamento['venda_id']))
+                                                            <a href="javascript:void(0);" 
+                                                               tabindex="0"
+                                                               class="venda-popover" 
+                                                               role="button"
+                                                               data-toggle="popover" 
+                                                               title="<i class='fas fa-shopping-cart'></i> Detalhes da Venda #{{ $lancamento['venda_id'] }}"
+                                                               data-content-id="popover-content-{{ $lancamento['venda_id'] }}">
+                                                                {{ $lancamento['descricao'] }} <i class="fas fa-info-circle text-info ml-1"></i>
+                                                            </a>
+                                                            
+                                                            <!-- Hidden content for popover -->
+                                                            <div id="popover-content-{{ $lancamento['venda_id'] }}" class="d-none">
+                                                                <strong>Valor Final:</strong> R$ {{ number_format($lancamento['venda_detalhes']['valor_final'], 2, ',', '.') }}<br>
+                                                                <strong>Observações:</strong> {{ $lancamento['venda_detalhes']['observacoes'] ?: 'Nenhuma' }}<br>
+                                                                <strong>Itens:</strong>
+                                                                <ul class='list-unstyled mt-1 mb-0'>
+                                                                    @foreach($lancamento['venda_detalhes']['itens'] as $item)
+                                                                        <li>- {{ $item['quantidade'] }}x {{ $item['descricao'] }} (R$ {{ number_format($item['valor_total_item'], 2, ',', '.') }})</li>
+                                                                    @endforeach
+                                                                </ul>
+                                                            </div>
+                                                        @else
+                                                            {{ $lancamento['descricao'] }}
+                                                        @endif
+                                                    </td>
                                                     <td>
                                                         @if ($lancamento['tipo_lancamento'] == 'positivo')
                                                             <span class="badge badge-success">Positivo</span>
@@ -249,7 +275,18 @@
 {{-- E SEMPRE DENTRO DE $(document).ready() --}}
 <script>
     $(document).ready(function() {
-        // Não há scripts de gráficos aqui, apenas se houver alguma inicialização específica de formulário
-        // ou outros elementos que só existem nesta página.
+        // Inicializa os popovers para os detalhes da venda.
+        // Usar o trigger 'focus' permite que o popover seja aberto com um clique
+        // e fechado automaticamente ao clicar em qualquer outro lugar da página.
+        $('.venda-popover').popover({
+            html: true,
+            trigger: 'focus',
+            placement: 'top',
+            container: 'body', // Para evitar problemas de layout dentro de tabelas
+            content: function () {
+                var content_id = $(this).data('content-id');
+                return $('#' + content_id).html();
+            }
+        });
     });
 </script>
