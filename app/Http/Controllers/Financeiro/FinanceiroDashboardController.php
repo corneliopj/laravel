@@ -39,6 +39,240 @@ class FinanceiroDashboardController extends Controller
         ));
     }
 
+    /**
+     * Dashboard de Relatórios Financeiros (Página Inicial de Relatórios)
+     */
+    public function relatoriosIndex(Request $request)
+    {
+        $anoAtual = $request->input('ano', Carbon::now()->year);
+        $anoAnterior = $anoAtual - 1;
+
+        $dadosAnoAtual = $this->getEvolucaoMensal($anoAtual);
+        $dadosAnoAnterior = $this->getEvolucaoMensal($anoAnterior);
+
+        // KPIs Consolidados do Ano Atual
+        $kpis = [
+            'faturamento_total_atual' => array_sum($dadosAnoAtual['faturamento']),
+            'faturamento_total_anterior' => array_sum($dadosAnoAnterior['faturamento']),
+            'despesa_total_atual' => array_sum($dadosAnoAtual['despesas']),
+            'liquidez_total_atual' => array_sum($dadosAnoAtual['liquidez']),
+        ];
+
+        $kpis['variacao_faturamento'] = $this->calcularVariacao($kpis['faturamento_total_atual'], $kpis['faturamento_total_anterior']);
+
+        return view('financeiro.relatorios.index', compact(
+            'dadosAnoAtual', 
+            'dadosAnoAnterior', 
+            'kpis', 
+            'anoAtual', 
+            'anoAnterior'
+        ));
+    }
+
+    /**
+     * Relatório Detalhado de Transações
+     */
+    public function transacoes(Request $request)
+    {
+        $tipo = $request->input('tipo');
+        $data_inicio = $request->input('data_inicio');
+        $data_fim = $request->input('data_fim');
+
+        $receitas = Receita::query();
+        $despesas = Despesa::query();
+        $vendas = Venda::where('status', 'concluida');
+
+        if ($data_inicio) {
+            $receitas->where('data', '>=', $data_inicio);
+            $despesas->where('data', '>=', $data_inicio);
+            $vendas->where('data_venda', '>=', $data_inicio);
+        }
+        if ($data_fim) {
+            $receitas->where('data', '<=', $data_fim);
+            $despesas->where('data', '<=', $data_fim);
+            $vendas->where('data_venda', '<=', $data_fim);
+        }
+
+        // Unificar transações para exibição
+        $colecao = collect();
+
+        if (!$tipo || $tipo == 'receita' || $tipo == 'venda') {
+            $queryReceitas = Receita::query();
+            if ($data_inicio) $queryReceitas->where('data', '>=', $data_inicio);
+            if ($data_fim) $queryReceitas->where('data', '<=', $data_fim);
+            
+            foreach ($queryReceitas->with('categoria')->get() as $r) {
+                $colecao->push((object)[
+                    'id' => $r->id,
+                    'type' => 'receita',
+                    'descricao' => $r->descricao,
+                    'categoria' => $r->categoria,
+                    'valor' => $r->valor,
+                    'data' => $r->data,
+                    'observacoes' => $r->observacoes ?? ''
+                ]);
+            }
+
+            $queryVendas = Venda::where('status', 'concluida');
+            if ($data_inicio) $queryVendas->where('data_venda', '>=', $data_inicio);
+            if ($data_fim) $queryVendas->where('data_venda', '<=', $data_fim);
+
+            foreach ($queryVendas->get() as $v) {
+                $colecao->push((object)[
+                    'id' => $v->id,
+                    'type' => 'receita',
+                    'descricao' => "Venda para " . $v->comprador,
+                    'categoria' => (object)['nome' => 'Vendas'],
+                    'valor' => $v->valor_final,
+                    'data' => $v->data_venda,
+                    'observacoes' => 'Venda realizada no PDV'
+                ]);
+            }
+        }
+
+        if (!$tipo || $tipo == 'despesa') {
+            $queryDespesas = Despesa::query();
+            if ($data_inicio) $queryDespesas->where('data', '>=', $data_inicio);
+            if ($data_fim) $queryDespesas->where('data', '<=', $data_fim);
+
+            foreach ($queryDespesas->with('categoria')->get() as $d) {
+                $colecao->push((object)[
+                    'id' => $d->id,
+                    'type' => 'despesa',
+                    'descricao' => $d->descricao,
+                    'categoria' => $d->categoria,
+                    'valor' => $d->valor,
+                    'data' => $d->data,
+                    'observacoes' => $d->observacoes ?? ''
+                ]);
+            }
+        }
+
+        $transacoes = $colecao->sortByDesc('data');
+        
+        // Paginação manual para coleções unificadas
+        $perPage = 15;
+        $page = $request->input('page', 1);
+        $total = $transacoes->count();
+        $transacoes = new \Illuminate\Pagination\LengthAwarePaginator(
+            $transacoes->forPage($page, $perPage),
+            $total,
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        $categorias = \App\Models\Categoria::where('tipo', 'receita')
+            ->orWhere('tipo', 'despesa')
+            ->get();
+
+        return view('financeiro.relatorios.transacoes', compact('transacoes', 'tipo', 'data_inicio', 'data_fim', 'categorias'));
+    }
+
+    /**
+     * Relatório de Fluxo de Caixa
+     */
+    public function fluxoCaixa(Request $request)
+    {
+        $ano = $request->input('ano', Carbon::now()->year);
+        $dados = $this->getEvolucaoMensal($ano);
+
+        // Adaptar para a view legada se necessário, ou atualizar a view
+        $fluxoCaixaData = [];
+        foreach ($dados['labels'] as $index => $label) {
+            $fluxoCaixaData[] = [
+                'mes_ano' => $label . '/' . $ano,
+                'total_receitas' => $dados['faturamento'][$index],
+                'total_despesas' => $dados['despesas'][$index],
+                'saldo_mensal' => $dados['liquidez'][$index]
+            ];
+        }
+
+        $labelsFluxoCaixa = $dados['labels'];
+        $dataReceitas = $dados['faturamento'];
+        $dataDespesas = $dados['despesas'];
+        $dataSaldo = $dados['liquidez'];
+
+        return view('financeiro.relatorios.fluxo_caixa', compact(
+            'fluxoCaixaData', 
+            'labelsFluxoCaixa', 
+            'dataReceitas', 
+            'dataDespesas', 
+            'dataSaldo', 
+            'ano'
+        ));
+    }
+
+    /**
+     * Relatório por Categoria
+     */
+    public function relatorioPorCategoria(Request $request)
+    {
+        $tipo = $request->input('tipo', 'receita');
+        $dataInicio = $request->input('data_inicio') ? Carbon::parse($request->input('data_inicio')) : Carbon::now()->startOfMonth();
+        $dataFim = $request->input('data_fim') ? Carbon::parse($request->input('data_fim')) : Carbon::now()->endOfMonth();
+
+        if ($tipo == 'receita') {
+            $dadosPorCategoria = Receita::with('categoria')
+                ->selectRaw('categoria_id, SUM(valor) as total')
+                ->whereBetween('data', [$dataInicio, $dataFim])
+                ->groupBy('categoria_id')
+                ->get();
+            
+            $totalVendas = Venda::where('status', 'concluida')
+                ->whereBetween('data_venda', [$dataInicio, $dataFim])
+                ->sum('valor_final');
+            
+            if ($totalVendas > 0) {
+                $dadosPorCategoria->push((object)[
+                    'categoria' => (object)['nome' => 'Vendas'],
+                    'total' => $totalVendas
+                ]);
+            }
+        } else {
+            $dadosPorCategoria = Despesa::with('categoria')
+                ->selectRaw('categoria_id, SUM(valor) as total')
+                ->whereBetween('data', [$dataInicio, $dataFim])
+                ->groupBy('categoria_id')
+                ->get();
+        }
+
+        $totalGeral = $dadosPorCategoria->sum('total');
+
+        return view('financeiro.relatorios.por_categoria', compact(
+            'tipo', 'dataInicio', 'dataFim', 'dadosPorCategoria', 'totalGeral'
+        ));
+    }
+
+    /**
+     * Auxiliar: Obtém faturamento, despesas e liquidez mensal para um ano específico
+     */
+    private function getEvolucaoMensal($ano)
+    {
+        $faturamento = [];
+        $despesas = [];
+        $liquidez = [];
+        $labels = [];
+
+        for ($i = 1; $i <= 12; $i++) {
+            $labels[] = Carbon::create($ano, $i, 1)->translatedFormat('M');
+            
+            $fat = $this->getTotalReceitas($ano, $i);
+            $desp = Despesa::whereYear('data', $ano)->whereMonth('data', $i)->sum('valor');
+            
+            $faturamento[] = (float)$fat;
+            $despesas[] = (float)$desp;
+            $liquidez[] = (float)($fat - $desp);
+        }
+
+        return [
+            'labels' => $labels,
+            'faturamento' => $faturamento,
+            'despesas' => $despesas,
+            'liquidez' => $liquidez
+        ];
+    }
+
     private function getDadosGraficoLinha($ano, $mes)
     {
         $dados = [];
