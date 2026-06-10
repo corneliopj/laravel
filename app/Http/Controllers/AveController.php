@@ -8,6 +8,8 @@ use App\Models\TipoAve;
 use App\Models\Variacao;
 use App\Models\Lote;
 use App\Models\Incubacao;
+use App\Http\Requests\StoreAveRequest;
+use App\Http\Requests\UpdateAveRequest;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
@@ -120,21 +122,8 @@ class AveController extends Controller
     /**
      * Armazena uma nova ave no banco de dados.
      */
-    public function store(Request $request)
+    public function store(StoreAveRequest $request)
     {
-        $request->validate([
-            'matricula' => 'required|string|max:255|unique:aves,matricula',
-            'tipo_ave_id' => 'required|exists:tipos_aves,id',
-            'variacao_id' => 'required|exists:variacoes,id',
-            'sexo' => ['required', Rule::in(['Macho', 'Femea', 'Indefinido'])],
-            'data_eclosao' => 'required|date|before_or_equal:today',
-            'lote_id' => 'nullable|exists:lotes,id',
-            'incubacao_id' => 'nullable|exists:incubacoes,id',
-            'peso_nascimento' => 'nullable|numeric|min:0',
-            'observacoes' => 'nullable|string|max:1000',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        ]);
-
         $data = $request->except('foto');
         $data['ativo'] = true;
 
@@ -181,27 +170,8 @@ class AveController extends Controller
     /**
      * Atualiza uma ave no banco de dados.
      */
-    public function update(Request $request, Ave $ave)
+    public function update(UpdateAveRequest $request, Ave $ave)
     {
-        $request->validate([
-            'matricula' => [
-                'required',
-                'string',
-                'max:255',
-                Rule::unique('aves', 'matricula')->ignore($ave->id),
-            ],
-            'tipo_ave_id' => 'required|exists:tipos_aves,id',
-            'variacao_id' => 'required|exists:variacoes,id',
-            'sexo' => ['required', Rule::in(['Macho', 'Femea', 'Indefinido'])],
-            'data_eclosao' => 'required|date|before_or_equal:today',
-            'lote_id' => 'nullable|exists:lotes,id',
-            'incubacao_id' => 'nullable|exists:incubacoes,id',
-            'peso_nascimento' => 'nullable|numeric|min:0',
-            'observacoes' => 'nullable|string|max:1000',
-            'foto' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
-            'remover_foto_atual' => 'nullable|boolean',
-        ]);
-
         $data = $request->except('foto');
 
         if ($request->has('remover_foto_atual') && $request->remover_foto_atual == 1) {
