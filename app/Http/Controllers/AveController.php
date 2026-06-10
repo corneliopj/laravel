@@ -36,8 +36,13 @@ class AveController extends Controller
         }
 
         // Lógica de filtragem e paginação para a lista completa
-        $query = Ave::query();
-        $query->with(['tipoAve', 'variacao', 'lote', 'mortes']); // Carrega relações, incluindo 'mortes' (plural)
+        $query = Ave::query()->select(['id', 'matricula', 'tipo_ave_id', 'variacao_id', 'lote_id', 'data_eclosao', 'sexo', 'ativo', 'deleted_at']);
+        $query->with([
+            'tipoAve:id,nome',
+            'variacao:id,nome',
+            'lote:id,identificacao_lote',
+            'mortes:id,ave_id'
+        ]); // Carrega relações, incluindo 'mortes' (plural)
 
         $status = $request->input('status');
 

@@ -13,6 +13,7 @@ use App\Models\Plantel;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class DashboardController extends Controller
 {
@@ -27,8 +28,10 @@ class DashboardController extends Controller
         // 1. Quantidade Total de Aves Ativas (Individuais)
         $totalAvesAtivas = Ave::where('ativo', 1)->count();
 
-        // Calcular KPIs de performance
-        $kpis = $this->calcularKPIs();
+        // Calcular KPIs de performance com Cache
+        $kpis = Cache::remember('dashboard_kpis', 3600, function () {
+            return $this->calcularKPIs();
+        });
         
         // Obter previsões de eclosão
         $previsoesEclosao = $this->obterPrevisoesEclosao();
@@ -48,7 +51,7 @@ class DashboardController extends Controller
                             ->selectRaw('count(*) as total')
                             ->where('ativo', 1)
                             ->groupBy('tipo_ave_id')
-                            ->with('tipoAve')
+                            ->with('tipoAve:id,nome')
                             ->get();
 
         $labelsAvesPorTipo = $avesPorTipo->map(function($item) {
@@ -174,7 +177,7 @@ class DashboardController extends Controller
                                                     $query->whereNull('quantidade_eclodidos')
                                                           ->orWhere('quantidade_eclodidos', 0);
                                                 })
-                                                ->with('lote', 'tipoAve')
+                                                ->with(['lote:id,identificacao_lote', 'tipoAve:id,nome'])
                                                 ->get();
 
         foreach ($incubacoesProximasEclosao as $incubacao) {
@@ -188,13 +191,13 @@ class DashboardController extends Controller
         }
 
         $incubacoesAtrasadas = Incubacao::where('data_prevista_eclosao', '<', Carbon::now()->startOfDay())
-                                         ->where(function($query) {
-                                             $query->whereNull('quantidade_eclodidos')
-                                                   ->orWhere('quantidade_eclodidos', 0);
-                                         })
-                                         ->where('ativo', 1)
-                                         ->with('lote', 'tipoAve')
-                                         ->get();
+                                          ->where(function($query) {
+                                              $query->whereNull('quantidade_eclodidos')
+                                                    ->orWhere('quantidade_eclodidos', 0);
+                                          })
+                                          ->where('ativo', 1)
+                                          ->with(['lote:id,identificacao_lote', 'tipoAve:id,nome'])
+                                          ->get();
 
         foreach ($incubacoesAtrasadas as $incubacao) {
             $diasAtraso = Carbon::parse($incubacao->data_prevista_eclosao)->diffInDays(Carbon::now());
@@ -210,7 +213,7 @@ class DashboardController extends Controller
         $selectedLote = $request->query('lote_id');
 
         $queryIncubacoes = Incubacao::where('ativo', 1)
-                                     ->with('lote', 'tipoAve');
+                                      ->with(['lote:id,identificacao_lote', 'tipoAve:id,nome']);
 
         if ($selectedTipoAve) {
             $queryIncubacoes->where('tipo_ave_id', $selectedTipoAve);
