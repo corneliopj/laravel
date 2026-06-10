@@ -43,8 +43,10 @@ class DashboardController extends Controller
         // Obter previsões de eclosão
         $previsoesEclosao = $this->dashboardService->obterPrevisoesEclosao();
 
-        // 2. Quantidade Total de Aves em Plantéis Agrupados Ativos
-        $totalAvesEmPlantelAtivas = Plantel::where('ativo', true)->sum('quantidade_atual');
+        // 2. Quantidade Total de Aves em Lotes Ativos
+        $totalAvesEmPlantelAtivas = Ave::whereHas('lote', function($q) {
+            $q->where('ativo', true);
+        })->where('ativo', true)->count();
 
         // 3. KPI Total Geral de Aves (Suma de individuais e plantéis)
         $totalGeralAves = $totalAvesAtivas + $totalAvesEmPlantelAtivas;
