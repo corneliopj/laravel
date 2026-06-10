@@ -34,11 +34,7 @@ class DashboardController extends Controller
         $previsoesEclosao = $this->obterPrevisoesEclosao();
 
         // 2. Quantidade Total de Aves em Plantéis Agrupados Ativos
-        $totalAvesEmPlantelAtivas = 0;
-        $plantelAtivo = Plantel::where('ativo', true)->get();
-        foreach ($plantelAtivo as $plantel) {
-            $totalAvesEmPlantelAtivas += $plantel->quantidade_atual;
-        }
+        $totalAvesEmPlantelAtivas = Plantel::where('ativo', true)->sum('quantidade_atual');
 
         // 3. KPI Total Geral de Aves (Suma de individuais e plantéis)
         $totalGeralAves = $totalAvesAtivas + $totalAvesEmPlantelAtivas;
@@ -66,11 +62,9 @@ class DashboardController extends Controller
         $totalIncubacoesAtivas = Incubacao::where('ativo', 1)->count();
 
         // Cálculo da Taxa de Eclosão Global - APENAS COM INCUBACÕES INATIVAS
-        $incubacoesInativasParaTaxa = Incubacao::where('ativo', false)->get();
-
-        $totalOvosIncubadosInativos = $incubacoesInativasParaTaxa->sum('quantidade_ovos');
-        $totalEclodidosInativos = $incubacoesInativasParaTaxa->sum('quantidade_eclodidos');
-        $totalInferteisInativos = $incubacoesInativasParaTaxa->sum('quantidade_inferteis');
+        $totalOvosIncubadosInativos = Incubacao::where('ativo', false)->sum('quantidade_ovos');
+        $totalEclodidosInativos = Incubacao::where('ativo', false)->sum('quantidade_eclodidos');
+        $totalInferteisInativos = Incubacao::where('ativo', false)->sum('quantidade_inferteis');
 
         $ovosViaveisInativos = $totalOvosIncubadosInativos - $totalInferteisInativos;
         if ($ovosViaveisInativos < 0) { $ovosViaveisInativos = 0; }
@@ -528,13 +522,9 @@ class DashboardController extends Controller
         $dataLimite30Dias = Carbon::now()->subDays(30);
         
         // Taxa de Eclosão (últimos 30 dias)
-        $incubacoesConcluidas = Incubacao::where('ativo', false)
-            ->where('data_entrada_incubadora', '>=', $dataLimite30Dias)
-            ->get();
-        
-        $totalOvos = $incubacoesConcluidas->sum('quantidade_ovos');
-        $totalInferteis = $incubacoesConcluidas->sum('quantidade_inferteis');
-        $totalEclodidos = $incubacoesConcluidas->sum('quantidade_eclodidos');
+        $totalOvos = Incubacao::where('ativo', false)->where('data_entrada_incubadora', '>=', $dataLimite30Dias)->sum('quantidade_ovos');
+        $totalInferteis = Incubacao::where('ativo', false)->where('data_entrada_incubadora', '>=', $dataLimite30Dias)->sum('quantidade_inferteis');
+        $totalEclodidos = Incubacao::where('ativo', false)->where('data_entrada_incubadora', '>=', $dataLimite30Dias)->sum('quantidade_eclodidos');
         
         $ovosViaveis = $totalOvos - $totalInferteis;
         $taxaEclosao30Dias = $ovosViaveis > 0 ? ($totalEclodidos / $ovosViaveis) * 100 : 0;
@@ -554,8 +544,7 @@ class DashboardController extends Controller
         $melhorChocadeiraEficiencia = $eficienciaChocadeiras ? $eficienciaChocadeiras->eficiencia : 0;
         
         // Média de Ovos por Incubação
-        $mediaOvosPorIncubacao = $incubacoesConcluidas->count() > 0 ? 
-            $incubacoesConcluidas->avg('quantidade_ovos') : 0;
+        $mediaOvosPorIncubacao = Incubacao::where('ativo', false)->where('data_entrada_incubadora', '>=', $dataLimite30Dias)->avg('quantidade_ovos') ?? 0;
         
         return [
             'taxa_eclosao_30_dias' => round($taxaEclosao30Dias, 1),

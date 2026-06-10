@@ -34,8 +34,8 @@ use App\Http\Controllers\MovimentacaoPlantelController;
 |
 */
 // Rota Pública para Validação de Certidão (ESTÁTICA, ANTES DA DINÂMICA)
-Route::get('certidao/validar', [AveController::class, 'showValidarForm'])->name('certidao.validar');
-Route::post('certidao/validar', [AveController::class, 'processValidarForm'])->name('certidao.validar.post');
+Route::get('certidao/validar', [AveController::class, 'showValidarForm'])->middleware('throttle:5,1')->name('certidao.validar');
+Route::post('certidao/validar', [AveController::class, 'processValidarForm'])->middleware('throttle:5,1')->name('certidao.validar.post');
 
 // Rota Pública para a Certidão (DINÂMICA, DEPOIS DA ESTÁTICA)
 Route::get('certidao/{validation_code}', [AveController::class, 'showCertidao'])->name('certidao.show');
