@@ -33,7 +33,30 @@
         <!-- Main content -->
         <section class="content">
             <div class="container-fluid">
+                {{-- Ações Rápidas --}}
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card bg-gradient-success text-white shadow-sm" style="border: none;">
+                            <div class="card-body d-flex align-items-center justify-content-between py-3">
+                                <div class="d-flex align-items-center">
+                                    <div class="bg-white text-success rounded-circle d-flex align-items-center justify-content-center mr-3" style="width: 45px; height: 45px; font-size: 20px; min-width: 45px;">
+                                        <i class="fas fa-cart-plus"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-0 font-weight-bold">Nova Venda</h5>
+                                        <small style="opacity: 0.9;">Registre uma venda rapidamente para agilizar o atendimento</small>
+                                    </div>
+                                </div>
+                                <a href="{{ route('financeiro.vendas.create') }}" class="btn btn-light btn-lg font-weight-bold text-success shadow-sm px-4">
+                                    <i class="fas fa-plus"></i> Nova Venda
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {{-- Filtros Dinâmicos --}}
+
                 <div class="row mb-3">
                     <div class="col-md-12">
                         <div class="card card-primary card-outline collapsed-card">
