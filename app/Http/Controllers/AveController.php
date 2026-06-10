@@ -11,15 +11,22 @@ use App\Models\Incubacao;
 use App\Http\Requests\StoreAveRequest;
 use App\Http\Requests\UpdateAveRequest;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use App\Services\AveService;
 
 class AveController extends Controller
 {
+    protected $aveService;
+
+    public function __construct(AveService $aveService)
+    {
+        $this->aveService = $aveService;
+    }
+
     /**
      * Exibe uma lista de aves.
      */
@@ -37,68 +44,7 @@ class AveController extends Controller
             return response()->json($aves);
         }
 
-        // Lógica de filtragem e paginação para a lista completa
-        $query = Ave::query()->select(['id', 'matricula', 'tipo_ave_id', 'variacao_id', 'lote_id', 'data_eclosao', 'sexo', 'ativo', 'deleted_at', 'foto_path']);
-        $query->with([
-            'tipoAve:id,nome',
-            'variacao:id,nome',
-            'lote:id,identificacao_lote',
-            'mortes:id,ave_id'
-        ]); // Carrega relações, incluindo 'mortes' (plural)
-
-        $status = $request->input('status');
-
-        switch ($status) {
-            case 'ativas':
-                $query->where('ativo', true)
-                      ->doesntHave('mortes')
-                      ->whereNull('deleted_at');
-                break;
-            case 'excluidas':
-                $query->onlyTrashed();
-                break;
-            case 'mortas':
-                $query->whereHas('mortes')
-                      ->withTrashed();
-                break;
-            case 'inativas':
-                $query->where('ativo', false)
-                      ->doesntHave('mortes')
-                      ->whereNull('deleted_at');
-                break;
-            default:
-                $query->withTrashed();
-                break;
-        }
-
-        // Filtro por tipo de ave
-        if ($request->filled('tipo_ave_id')) {
-            $query->where('tipo_ave_id', $request->tipo_ave_id);
-        }
-
-        // Filtro por variação
-        if ($request->filled('variacao_id')) {
-            $query->where('variacao_id', $request->variacao_id);
-        }
-
-        // Filtro por sexo
-        if ($request->filled('sexo')) {
-            $query->where('sexo', $request->sexo);
-        }
-
-        // Busca por matrícula (se search for usado para busca geral ou searchbox)
-        if ($request->filled('search')) {
-            $searchTerm = $request->search;
-            $query->where('matricula', 'like', "%{$searchTerm}%");
-        }
-
-        // Ordenação
-        $sortColumn = $request->get('sort', 'matricula');
-        $sortDirection = $request->get('direction', 'asc');
-        $query->orderBy($sortColumn, $sortDirection);
-
-
-        $aves = $query->paginate(10); // Paginação de 10 aves por página
+        $aves = $this->aveService->paginateAves($request);
 
         $tiposAves = TipoAve::all();
         $variacoes = Variacao::all();
@@ -125,16 +71,7 @@ class AveController extends Controller
     public function store(StoreAveRequest $request)
     {
         $data = $request->except('foto');
-        $data['ativo'] = true;
-
-        if ($request->hasFile('foto')) {
-            $imagePath = $request->file('foto')->store('uploads/aves', 'public');
-            $data['foto_path'] = $imagePath;
-        } else {
-            $data['foto_path'] = null;
-        }
-
-        Ave::create($data);
+        $this->aveService->storeAve($data, $request->file('foto'));
 
         return redirect()->route('aves.index')->with('success', 'Ave cadastrada com sucesso!');
     }
@@ -173,23 +110,12 @@ class AveController extends Controller
     public function update(UpdateAveRequest $request, Ave $ave)
     {
         $data = $request->except('foto');
-
-        if ($request->has('remover_foto_atual') && $request->remover_foto_atual == 1) {
-            if ($ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-                Storage::disk('public')->delete($ave->foto_path);
-            }
-            $data['foto_path'] = null;
-        }
-
-        if ($request->hasFile('foto')) {
-            if ($ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-                Storage::disk('public')->delete($ave->foto_path);
-            }
-            $imagePath = $request->file('foto')->store('uploads/aves', 'public');
-            $data['foto_path'] = $imagePath;
-        }
-
-        $ave->update($data);
+        $this->aveService->updateAve(
+            $ave, 
+            $data, 
+            $request->file('foto'), 
+            $request->input('remover_foto_atual') == 1
+        );
 
         return redirect()->route('aves.index')->with('success', 'Ave atualizada com sucesso!');
     }
@@ -199,9 +125,7 @@ class AveController extends Controller
      */
     public function destroy(Ave $ave)
     {
-        $ave->ativo = false;
-        $ave->save();
-        $ave->delete();
+        $this->aveService->deleteAve($ave);
 
         return redirect()->route('aves.index')->with('success', 'Ave inativada e marcada para exclusão (soft delete) com sucesso!');
     }
@@ -211,10 +135,7 @@ class AveController extends Controller
      */
     public function restore($id)
     {
-        $ave = Ave::withTrashed()->findOrFail($id);
-        $ave->restore();
-        $ave->ativo = true;
-        $ave->save();
+        $this->aveService->restoreAve($id);
 
         return redirect()->route('aves.index')->with('success', 'Ave restaurada com sucesso!');
     }
@@ -224,13 +145,7 @@ class AveController extends Controller
      */
     public function forceDelete($id)
     {
-        $ave = Ave::withTrashed()->findOrFail($id);
-
-        if ($ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-            Storage::disk('public')->delete($ave->foto_path);
-        }
-
-        $ave->forceDelete();
+        $this->aveService->forceDeleteAve($id);
 
         return redirect()->route('aves.index')->with('success', 'Ave excluída permanentemente com sucesso!');
     }
@@ -258,61 +173,23 @@ class AveController extends Controller
             'observacoes' => 'nullable|string|max:1000',
         ]);
 
-        if ($ave->mortes()->exists()) {
-            return redirect()->route('aves.show', $ave->id)->with('error', 'Esta ave já possui um registro de morte.');
+        try {
+            $this->aveService->registerDeath($ave, $request->all());
+        } catch (\Exception $e) {
+            return redirect()->route('aves.show', $ave->id)->with('error', $e->getMessage());
         }
-
-        Morte::create([
-            'ave_id' => $ave->id,
-            'data_morte' => $request->input('data_morte'),
-            'causa' => $request->input('causa'),
-            'observacoes' => $request->input('observacoes'),
-        ]);
-
-        $ave->ativo = false;
-        $ave->save();
 
         return redirect()->route('aves.show', $ave->id)->with('success', 'Morte da ave registrada com sucesso.');
     }
 
     /**
      * Gera e associa um código de validação à certidão da ave.
-     * Implementa lógica de retentativa para garantir unicidade.
      */
     public function expedirCertidao(Ave $ave)
     {
-        $maxRetries = 10;
-        $attempt = 0;
-        $saved = false;
-        $validationCode = null;
+        $validationCode = $this->aveService->expedirCertidao($ave);
 
-        while (!$saved && $attempt < $maxRetries) {
-            try {
-                do {
-                    $hexPart = bin2hex(random_bytes(5));
-                    $code = strtoupper(substr($hexPart, 0, 5) . '-' . substr($hexPart, 5, 5));
-                } while (Ave::where('codigo_validacao_certidao', $code)->exists() && $attempt < $maxRetries);
-
-                if ($attempt >= $maxRetries) {
-                    break;
-                }
-
-                $validationCode = $code;
-                $ave->codigo_validacao_certidao = $validationCode;
-                $ave->save();
-
-                $saved = true;
-            } catch (QueryException $e) {
-                if ($e->getCode() === '23000' || Str::contains($e->getMessage(), 'Integrity constraint violation')) {
-                    $attempt++;
-                    Log::warning("Colisão de código de validação detectada para ave ID {$ave->id}. Tentando novamente. Tentativa: {$attempt}");
-                } else {
-                    throw $e;
-                }
-            }
-        }
-
-        if (!$saved) {
+        if (!$validationCode) {
             return redirect()->back()->with('error', 'Não foi possível gerar um código de validação único para a certidão após várias tentativas. Por favor, tente novamente.');
         }
 
@@ -321,7 +198,6 @@ class AveController extends Controller
 
     /**
      * Exibe a certidão pública usando o código de validação.
-     * Esta rota é pública e não requer autenticação.
      */
     public function showCertidao(string $validation_code)
     {
@@ -340,7 +216,6 @@ class AveController extends Controller
 
     /**
      * Exibe o formulário de validação de certidão para usuários externos.
-     * @return \Illuminate\View\View
      */
     public function showValidarForm()
     {
@@ -349,9 +224,6 @@ class AveController extends Controller
 
     /**
      * Processa a submissão do formulário de validação de certidão.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function processValidarForm(Request $request)
     {
@@ -360,17 +232,14 @@ class AveController extends Controller
             'codigo_validacao' => 'required|string|size:11',
         ]);
 
-        $matricula = $request->input('matricula');
-        $codigoValidacao = strtoupper($request->input('codigo_validacao'));
-
-        $ave = Ave::withTrashed()
-                    ->where('matricula', $matricula)
-                    ->where('codigo_validacao_certidao', $codigoValidacao)
-                    ->first();
+        $ave = $this->aveService->validateCertidao(
+            $request->input('matricula'), 
+            $request->input('codigo_validacao')
+        );
 
         if ($ave) {
             return redirect()->route('certidao.show', ['validation_code' => $ave->codigo_validacao_certidao])
-                             ->with('success', 'Certidão validada com sucesso!');
+                                ->with('success', 'Certidão validada com sucesso!');
         } else {
             return redirect()->back()->withInput()->with('error', 'Matrícula ou Código de Validação inválidos ou não correspondentes.');
         }
@@ -378,48 +247,13 @@ class AveController extends Controller
 
     /**
      * Fornece sugestões de pesquisa para aves com base na matrícula e tipo de ave.
-     * Retorna uma coleção de objetos JSON contendo 'id', 'matricula', 'tipo_ave_nome' e 'text' (para autocomplete).
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\JsonResponse
      */
-   public function searchSuggestions(Request $request)
+    public function searchSuggestions(Request $request)
     {
         $query = $request->input('query');
-
-        try {
-            if (empty($query)) {
-                return response()->json([]);
-            }
-
-            $aves = Ave::with('tipoAve')
-                        ->where('matricula', 'like', '%' . $query . '%')
-                        ->orWhereHas('tipoAve', function ($q) use ($query) {
-                            $q->where('nome', 'like', '%' . $query . '%');
-                        })
-                        ->limit(10)
-                        ->get();
-
-            $formattedSuggestions = $aves->map(function($ave) {
-                $tipoAveNome = $ave->tipoAve->nome ?? 'Tipo Desconhecido';
-                return [
-                    'id' => $ave->id,
-                    'matricula' => $ave->matricula,
-                    'tipo_ave_nome' => $tipoAveNome,
-                    'text' => "{$ave->matricula} ({$tipoAveNome})", // Adicionado para bibliotecas de autocomplete
-                ];
-            });
-
-            Log::info('Sugestões de busca retornadas: ' . json_encode($formattedSuggestions->toArray()));
-            return response()->json($formattedSuggestions);
-
-        } catch (QueryException $e) {
-            Log::error("Erro no banco de dados ao buscar sugestões: " . $e->getMessage() . " - SQL: " . $e->getSql() . " - Bindings: " . json_encode($e->getBindings()));
-            return response()->json(['error' => 'Erro interno do servidor ao buscar sugestões.'], 500);
-        } catch (\Exception $e) {
-            Log::error("Erro geral ao buscar sugestões: " . $e->getMessage());
-            return response()->json(['error' => 'Erro interno do servidor.'], 500);
-        }
+        $suggestions = $this->aveService->searchSuggestions($query);
+        
+        return response()->json($suggestions);
     }
 
     /**
@@ -432,34 +266,16 @@ class AveController extends Controller
             return redirect()->route('aves.index')->with('error', 'Por favor, insira um termo para buscar.');
         }
 
-        try {
-            $aves = Ave::where('matricula', 'like', '%' . $query . '%')
-                       ->orWhereHas('tipoAve', function ($q) use ($query) {
-                           $q->where('nome', 'like', '%' . $query . '%');
-                       })
-                       ->orWhereHas('variacao', function ($q) use ($query) {
-                           $q->where('nome', 'like', '%' . $query . '%');
-                       })
-                       ->with(['tipoAve', 'variacao', 'lote'])
-                       ->paginate(10);
+        $aves = $this->aveService->searchAves($query);
 
-            if ($aves->isEmpty()) {
-                return redirect()->route('aves.index')->with('error', 'Nenhuma ave encontrada para o termo "' . $query . '".');
-            }
-
-            if ($aves->count() === 1 && $aves->first()->matricula === $query) {
-                return redirect()->route('aves.show', $aves->first()->id);
-            }
-
-            Log::info('Busca de aves realizada com sucesso para: ' . $query);
-            return view('aves.listar', compact('aves', 'query'));
-
-        } catch (QueryException $e) {
-            Log::error("Erro no banco de dados ao realizar busca de aves: " . $e->getMessage() . " - SQL: " . $e->getSql() . " - Bindings: " . json_encode($e->getBindings()));
-            return redirect()->back()->with('error', 'Erro interno do servidor ao realizar a busca.');
-        } catch (\Exception $e) {
-            Log::error("Erro geral ao realizar busca de aves: " . $e->getMessage());
-            return redirect()->back()->with('error', 'Erro interno do servidor.');
+        if (!$aves || $aves->isEmpty()) {
+            return redirect()->route('aves.index')->with('error', 'Nenhuma ave encontrada para o termo "' . $query . '".');
         }
+
+        if ($aves->count() === 1 && $aves->first()->matricula === $query) {
+            return redirect()->route('aves.show', $aves->first()->id);
+        }
+
+        return view('aves.listar', compact('aves', 'query'));
     }
 }
