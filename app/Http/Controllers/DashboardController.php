@@ -15,8 +15,17 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 
+use App\Services\DashboardService;
+
 class DashboardController extends Controller
 {
+    protected $dashboardService;
+
+    public function __construct(DashboardService $dashboardService)
+    {
+        $this->dashboardService = $dashboardService;
+    }
+
     /**
      * Exibe o dashboard com um resumo dos dados e o quadro de incubações.
      *
@@ -29,12 +38,10 @@ class DashboardController extends Controller
         $totalAvesAtivas = Ave::where('ativo', 1)->count();
 
         // Calcular KPIs de performance com Cache
-        $kpis = Cache::remember('dashboard_kpis', 3600, function () {
-            return $this->calcularKPIs();
-        });
+        $kpis = $this->dashboardService->calcularKPIs();
         
         // Obter previsões de eclosão
-        $previsoesEclosao = $this->obterPrevisoesEclosao();
+        $previsoesEclosao = $this->dashboardService->obterPrevisoesEclosao();
 
         // 2. Quantidade Total de Aves em Plantéis Agrupados Ativos
         $totalAvesEmPlantelAtivas = Plantel::where('ativo', true)->sum('quantidade_atual');
@@ -278,9 +285,9 @@ class DashboardController extends Controller
         $tiposAves = TipoAve::orderBy('nome')->get();
         $lotes = Lote::orderBy('identificacao_lote')->get();
 
-        $dadosTaxaEclosaoMensal = $this->getDadosTaxaEclosaoMensal();
-        $dadosOvosNaoEclodidosMensal = $this->getDadosOvosNaoEclodidosMensal();
-        $dadosDesempenhoChocadeira = $this->getDadosDesempenhoChocadeira();
+        $dadosTaxaEclosaoMensal = $this->dashboardService->getDadosTaxaEclosaoMensal();
+        $dadosOvosNaoEclodidosMensal = $this->dashboardService->getDadosOvosNaoEclodidosMensal();
+        $dadosDesempenhoChocadeira = $this->dashboardService->getDadosDesempenhoChocadeira();
 		$ano = $request->input('ano', Carbon::now()->year);
 		$trimestre = $request->input('trimestre', null);
 		$mes = $request->input('mes', null);
