@@ -147,3 +147,4 @@ Route::middleware(['auth'])->group(function () {
     // NOVO: Rotas para o Módulo Mortes (Centralizado)
     Route::resource('mortes', MorteController::class);
 });
+Route::resource('suinos', SuinoController::class);
