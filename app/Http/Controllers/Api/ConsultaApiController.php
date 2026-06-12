@@ -14,7 +14,7 @@ class ConsultaApiController extends Controller
 {
     public function ultimaVenda()
     {
-        $venda = Venda::with(['cliente', 'itens.ave'])->latest()->first();
+        $venda = Venda::with(['cliente', 'vendaItems.ave'])->latest()->first();
 
         if (!$venda) {
             return response()->json(['message' => 'Nenhuma venda encontrada.'], 404);
@@ -22,9 +22,9 @@ class ConsultaApiController extends Controller
 
         return response()->json([
             'data' => $venda->data_venda,
-            'cliente' => $venda->cliente->nome,
+            'cliente' => $venda->cliente->nome ?? 'Não informado',
             'valor' => $venda->valor_total,
-            'itens' => $venda->itens->map(fn($item) => $item->ave->matricula)
+            'itens' => $venda->vendaItems->map(fn($item) => $item->ave->matricula ?? 'N/A')
         ]);
     }
 
