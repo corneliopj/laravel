@@ -3,6 +3,7 @@
 @endphp
 
 @include('layouts.partials.head')
+<body class="hold-transition sidebar-mini">
 <div class="wrapper">
     @include('layouts.partials.navbar')
     @include('layouts.partials.sidebar')
@@ -86,3 +87,4 @@
 
 @include('layouts.partials.scripts')
 @include('layouts.partials.footer')
+</body>
