@@ -24,7 +24,7 @@ class AveService
             'tipoAve:id,nome',
             'variacao:id,nome',
             'lote:id,identificacao_lote',
-            'mortes:id,ave_id'
+            'mortes:id,animal_id'
         ]);
 
         $status = $request->input('status');
@@ -161,7 +161,8 @@ class AveService
         }
 
         Morte::create([
-            'ave_id' => $ave->id,
+            'animal_id' => $ave->id,
+            'animal_type' => Ave::class,
             'data_morte' => $data['data_morte'],
             'causa' => $data['causa'] ?? null,
             'observacoes' => $data['observacoes'] ?? null,
