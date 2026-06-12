@@ -45,7 +45,9 @@ class SuinoController extends Controller
 
     public function edit(Suino $suino)
     {
-        return view('suinos.edit', compact('suino'));
+        $lotes = \App\Models\Lote::all();
+        $variacoes = \App\Models\Variacao::all();
+        return view('suinos.edit', compact('suino', 'lotes', 'variacoes'));
     }
 
     public function update(Request $request, Suino $suino)
