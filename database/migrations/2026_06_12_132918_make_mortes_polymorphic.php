@@ -10,6 +10,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('mortes', function (Blueprint $table) {
+            // 1. Primeiro removemos a Foreign Key para liberar a coluna
+            $table->dropForeign('mortes_ave_id_foreign');
+            
+            // 2. Adicionamos as colunas polimórficas
             $table->unsignedBigInteger('animal_id')->nullable()->after('id');
             $table->string('animal_type')->nullable()->after('animal_id');
         });
@@ -21,6 +25,7 @@ return new class extends Migration
         ]);
 
         Schema::table('mortes', function (Blueprint $table) {
+            // 3. Agora sim podemos deletar a coluna antiga
             $table->dropColumn('ave_id');
         });
     }
