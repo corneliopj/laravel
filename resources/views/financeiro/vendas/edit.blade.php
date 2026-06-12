@@ -2,14 +2,10 @@
     $pageTitle = 'Editar Venda #' . $venda->id;
 @endphp
 
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    @include('layouts.partials.navbar')
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <section class="content-header">
+@section('content')
+<section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -162,11 +158,9 @@
                 </form>
             </div>
         </section>
-    </div>
-</div>
+@endsection
 
-@include('layouts.partials.scripts')
-
+@push('scripts')
 <script>
 // O mesmo script do create.blade.php, mas com inicialização de valores
 document.addEventListener('DOMContentLoaded', function() {
@@ -284,3 +278,4 @@ document.addEventListener('DOMContentLoaded', function() {
     updateTotals();
 });
 </script>
+@endpush

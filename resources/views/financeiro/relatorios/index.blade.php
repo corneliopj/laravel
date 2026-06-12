@@ -2,15 +2,10 @@
     $pageTitle = 'Dashboard de Relatórios Financeiros';
 @endphp
 
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<body class="hold-transition sidebar-mini layout-fixed">
-    <div class="wrapper">
-        @include('layouts.partials.navbar')
-        @include('layouts.partials.sidebar')
-
-        <div class="content-wrapper px-4 py-2">
-            <div class="content-header">
+@section('content')
+<div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
                         <div class="col-sm-6">
@@ -180,16 +175,29 @@
                     </div>
                 </div>
             </div>
-        </div>
+@endsection
 
-        @include('layouts.partials.footer')
-    </div>
+@push('styles')
+<style>
+        .card-link {
+            transition: transform 0.2s, box-shadow 0.2s;
+            color: inherit;
+            text-decoration: none;
+        }
+        .card-link:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: inherit;
+        }
+        .border-left-primary { border-left: 5px solid #007bff; }
+        .border-left-success { border-left: 5px solid #28a745; }
+        .border-left-warning { border-left: 5px solid #ffc107; }
+    </style>
+@endpush
 
-    <script src="https://adminlte.io/themes/v3/plugins/jquery/jquery.min.js"></script>
-    <script src="https://adminlte.io/themes/v3/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-    <script src="https://adminlte.io/themes/v3/dist/js/adminlte.min.js?v=3.2.0"></script>
-
-    <script>
+@push('scripts')
+<script>
         document.addEventListener('DOMContentLoaded', function () {
             const ctx = document.getElementById('comparativoChart').getContext('2d');
             
@@ -279,22 +287,4 @@
             });
         });
     </script>
-
-    <style>
-        .card-link {
-            transition: transform 0.2s, box-shadow 0.2s;
-            color: inherit;
-            text-decoration: none;
-        }
-        .card-link:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            text-decoration: none;
-            color: inherit;
-        }
-        .border-left-primary { border-left: 5px solid #007bff; }
-        .border-left-success { border-left: 5px solid #28a745; }
-        .border-left-warning { border-left: 5px solid #ffc107; }
-    </style>
-</body>
-</html>
+@endpush

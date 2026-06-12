@@ -2,21 +2,10 @@
     $pageTitle = 'Adicionar Nova Ave';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- O preloader pode ser mantido como está ou movido para um partial se for comum a várias páginas --}}
-    <div class="preloader flex-column justify-content-center align-items-center" style="height: 0px;">
-        <img class="animation__shake" src="{{ asset('img/logo.png') }}" alt="AdminLTELogo" height="60" width="60" style="display: none;">
-    </div>
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper">
-        <div class="content-header">
+@section('content')
+<div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -161,12 +150,10 @@
                 </div>
             </div>
         </div>
-    </div>
-@include('layouts.partials.scripts')
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
+@endsection
 
-    <script>
+@push('scripts')
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             const tipoAveSelect = document.getElementById('tipo_ave_id');
             const variacaoSelect = document.getElementById('variacao_id');
@@ -217,4 +204,4 @@
             });
         });
     </script>
-</div>
+@endpush

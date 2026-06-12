@@ -2,17 +2,10 @@
     $pageTitle = 'Validar Certidão de Ave';
 @endphp
 
-{{-- Inclui o partial head (contém os meta tags, estilos CSS, etc.) --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-
-    {{-- Não inclui o sidebar, pois é uma página para usuário externo --}}
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <div class="content-header">
+@section('content')
+<div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -88,8 +81,4 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-</div>
+@endsection

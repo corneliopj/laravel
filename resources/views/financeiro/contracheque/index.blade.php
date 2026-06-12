@@ -4,18 +4,10 @@
     $pageTitle = 'Contracheque';
 @endphp
 
-{{-- Inclui o partial head (APENAS CSS) --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <!-- Content Header (Page header) -->
+@section('content')
+<!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -260,19 +252,9 @@
             </div><!-- /.container-fluid -->
         </section>
         <!-- /.content -->
-    </div>
-    <!-- /.content-wrapper -->
+@endsection
 
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-</div>
-<!-- ./wrapper -->
-
-{{-- Inclui o partial scripts (TODOS OS SCRIPTS GLOBAIS NA ORDEM CORRETA) --}}
-@include('layouts.partials.scripts')
-
-{{-- QUAISQUER SCRIPTS ESPECÍFICOS DESTA VIEW DEVEM VIR AQUI, DEPOIS DE scripts.blade.php --}}
-{{-- E SEMPRE DENTRO DE $(document).ready() --}}
+@push('scripts')
 <script>
     $(document).ready(function() {
         // Inicializa os popovers para os detalhes da venda.
@@ -290,3 +272,4 @@
         });
     });
 </script>
+@endpush

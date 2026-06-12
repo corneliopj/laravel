@@ -2,18 +2,10 @@
     $pageTitle = 'Dashboard Principal';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <!-- Content Header (Page header) -->
+@section('content')
+<!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -708,24 +700,25 @@
             </div><!-- /.container-fluid -->
         </section>
         <!-- /.content -->
-    </div>
-    <!-- /.content-wrapper -->
-   @include('layouts.partials.scripts')
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-</div>
-<!-- ./wrapper -->
+@endsection
 
-<!-- REQUIRED SCRIPTS -->
-<!-- jQuery -->
-<script src="{{ asset('vendor/jquery/jquery.min.js') }}"></script>
-<!-- Bootstrap 4 -->
-<script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
-<!-- AdminLTE App -->
-<script src="{{ asset('vendor/adminlte/dist/js/adminlte.min.js') }}"></script>
-<!-- ChartJS -->
+@push('styles')
+<style>
+    .kpi-gauge {
+        margin: 0 auto;
+        text-align: center;
+    }
+    .previsao-card {
+        transition: transform 0.2s;
+    }
+    .previsao-card:hover {
+        transform: translateY(-2px);
+    }
+</style>
+@endpush
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
 <script>
     $(function () {
         //-------------
@@ -1037,22 +1030,6 @@
         document.getElementById('filtros-form').submit();
     }
 </script>
-
-<!-- JustGage library for gauges -->
 <script src="https://cdn.jsdelivr.net/npm/raphael@2.3.0/raphael.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/justgage@1.4.0/justgage.js"></script>
-
-@push('styles')
-<style>
-    .kpi-gauge {
-        margin: 0 auto;
-        text-align: center;
-    }
-    .previsao-card {
-        transition: transform 0.2s;
-    }
-    .previsao-card:hover {
-        transform: translateY(-2px);
-    }
-</style>
 @endpush

@@ -2,17 +2,10 @@
     $pageTitle = 'Listagem de Posturas de Ovos';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <div class="content-header">
+@section('content')
+<div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -171,42 +164,10 @@
                 </div>
             </div>
         </div>
-    </div>
+@endsection
 
-    {{-- Modal para Encerrar Postura --}}
-    <div class="modal fade" id="encerrarPosturaModal" tabindex="-1" role="dialog" aria-labelledby="encerrarPosturaModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="encerrarPosturaModalLabel">Encerrar Postura de Ovos</h5>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-                <form id="formEncerrarPostura" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <input type="hidden" name="postura_id" id="modal_postura_id">
-                        <div class="form-group">
-                            <label for="modal_data_fim_postura">Data de Fim da Postura:</label>
-                            <input type="date" name="data_fim_postura" id="modal_data_fim_postura" class="form-control" required>
-                        </div>
-                        <p class="text-muted">Ao encerrar esta postura, uma nova incubação será criada automaticamente com a quantidade total de ovos desta postura e a data de fim informada.</p>
-                        <div class="alert alert-danger" id="modal-error-message" style="display:none;"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-success">Encerrar e Iniciar Incubação</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-
-    <script>
+@push('scripts')
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             // Lógica para o filtro de acasalamento
             const filterAcasalamentoSelect = document.getElementById('filter_acasalamento');
@@ -348,4 +309,4 @@
             });
         });
     </script>
-</div>
+@endpush

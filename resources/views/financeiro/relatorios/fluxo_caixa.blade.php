@@ -2,19 +2,10 @@
     $pageTitle = 'Relatório de Fluxo de Caixa Mensal';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<body class="hold-transition sidebar-mini layout-fixed">
-    <div class="wrapper">
-        {{-- Inclui o partial navbar --}}
-        @include('layouts.partials.navbar')
-        {{-- Inclui o partial sidebar --}}
-        @include('layouts.partials.sidebar')
-
-        {{-- CONTEÚDO PRINCIPAL DA PÁGINA --}}
-        <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-            {{-- Cabeçalho do Conteúdo --}}
+@section('content')
+{{-- Cabeçalho do Conteúdo --}}
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
@@ -98,18 +89,11 @@
                     </div>
                 </div>
             </div>
-        </div>
-        {{-- FIM DO CONTEÚDO PRINCIPAL DA PÁGINA --}}
+@endsection
 
-        {{-- Inclui o partial footer --}}
-        @include('layouts.partials.footer')
-    </div>
-    {{-- Fim do div.wrapper --}}
-
-    {{-- Script do Chart.js (CDN) --}}
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <script>
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
         $(function () {
             var ctx = $('#fluxoCaixaChart').get(0).getContext('2d');
             var fluxoCaixaChart = new Chart(ctx, {
@@ -186,5 +170,4 @@
             });
         });
     </script>
-</body>
-</html>
+@endpush

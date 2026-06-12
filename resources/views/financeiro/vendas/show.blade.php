@@ -2,54 +2,10 @@
     $pageTitle = 'Detalhes da Venda #' . $venda->id;
 @endphp
 
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<style>
-    .nota-fiscal {
-        max-width: 800px;
-        margin: 0 auto;
-        background: white;
-        padding: 20px;
-        box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .cabecalho {
-        text-align: center;
-        margin-bottom: 20px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 20px;
-    }
-    .logo {
-        max-width: 150px;
-        margin-bottom: 10px;
-    }
-    .detalhes-venda {
-        margin-bottom: 30px;
-    }
-    .table-itens {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-    .table-itens th {
-        background: #f8f9fa;
-        text-align: left;
-        padding: 8px;
-    }
-    .table-itens td {
-        padding: 8px;
-        border-bottom: 1px solid #eee;
-    }
-    .totais {
-        text-align: right;
-        margin-top: 20px;
-    }
-</style>
-
-<div class="wrapper">
-    @include('layouts.partials.navbar')
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <section class="content-header">
+@section('content')
+<section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -146,7 +102,46 @@
                 </div>
             </div>
         </section>
-    </div>
-</div>
+@endsection
 
-@include('layouts.partials.scripts')
+@push('styles')
+<style>
+    .nota-fiscal {
+        max-width: 800px;
+        margin: 0 auto;
+        background: white;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .cabecalho {
+        text-align: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+    }
+    .logo {
+        max-width: 150px;
+        margin-bottom: 10px;
+    }
+    .detalhes-venda {
+        margin-bottom: 30px;
+    }
+    .table-itens {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .table-itens th {
+        background: #f8f9fa;
+        text-align: left;
+        padding: 8px;
+    }
+    .table-itens td {
+        padding: 8px;
+        border-bottom: 1px solid #eee;
+    }
+    .totais {
+        text-align: right;
+        margin-top: 20px;
+    }
+</style>
+@endpush

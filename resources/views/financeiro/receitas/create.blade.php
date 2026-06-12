@@ -2,19 +2,10 @@
     $pageTitle = 'Registrar Nova Receita';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<body class="hold-transition sidebar-mini layout-fixed">
-    <div class="wrapper">
-        {{-- Inclui o partial navbar --}}
-        @include('layouts.partials.navbar')
-        {{-- Inclui o partial sidebar --}}
-        @include('layouts.partials.sidebar')
-
-        {{-- CONTEÚDO PRINCIPAL DA PÁGINA --}}
-        <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-            {{-- Cabeçalho do Conteúdo --}}
+@section('content')
+{{-- Cabeçalho do Conteúdo --}}
             <div class="content-header">
                 <div class="container-fluid">
                     <div class="row mb-2">
@@ -120,21 +111,4 @@
                     </div>
                 </div>
             </div>
-        </div>
-        {{-- FIM DO CONTEÚDO PRINCIPAL DA PÁGINA --}}
-         @include('layouts.partials.scripts')
-        {{-- Inclui o partial footer --}}
-        @include('layouts.partials.footer')
-    </div>
-    {{-- Fim do div.wrapper --}}
-
-    <script>
-        $(function () {
-            // Inicializar Select2 para o campo de categoria
-            $('#categoria_id').select2({
-                theme: 'bootstrap4'
-            });
-        });
-    </script>
-</body>
-</html>
+@endsection

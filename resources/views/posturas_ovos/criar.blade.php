@@ -2,18 +2,10 @@
     $pageTitle = 'Registrar Nova Incubação';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper">
-        <!-- Content Header (Page header) -->
+@section('content')
+<!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -208,10 +200,4 @@
             </div>
         </section>
         <!-- /.content -->
-    </div>
-    <!-- /.content-wrapper -->
-
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-</div>
-<!-- ./wrapper -->
+@endsection

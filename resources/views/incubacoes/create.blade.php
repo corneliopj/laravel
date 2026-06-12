@@ -2,15 +2,10 @@
     $pageTitle = 'Registrar Nova Incubação';
 @endphp
 
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    @include('layouts.partials.navbar')
-    @include('layouts.partials.sidebar')
-
-    <!-- Content Wrapper. Contains page content -->
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <!-- Content Header (Page header) -->
+@section('content')
+<!-- Content Header (Page header) -->
         <section class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
@@ -174,12 +169,10 @@
             </div>
         </section>
         <!-- /.content -->
-    </div>
-    <!-- /.content-wrapper -->
-    @include('layouts.partials.scripts')
-    @include('layouts.partials.footer')
+@endsection
 
-    <script>
+@push('scripts')
+<script>
         document.addEventListener('DOMContentLoaded', function () {
             const tipoAveSelect = document.getElementById('tipo_ave_id');
             const dataEntradaInput = document.getElementById('data_entrada_incubadora');
@@ -259,5 +252,4 @@
             }
         });
     </script>
-</div>
-<!-- ./wrapper -->
+@endpush

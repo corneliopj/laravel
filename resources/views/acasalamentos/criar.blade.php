@@ -2,17 +2,10 @@
     $pageTitle = 'Registrar Novo Acasalamento';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <div class="content-header">
+@section('content')
+<div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -167,12 +160,10 @@
                 </div>
             </div>
         </div>
-    </div>
-@include('layouts.partials.scripts')
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
+@endsection
 
-    <script>
+@push('scripts')
+<script>
         document.addEventListener('DOMContentLoaded', function() {
             const tipoAveRadios = document.querySelectorAll('input[name="selected_tipo_ave_id"]');
             const machoSelect = document.getElementById('macho_id');
@@ -251,4 +242,4 @@
             filterAvesByTipoAve();
         });
     </script>
-</div>
+@endpush

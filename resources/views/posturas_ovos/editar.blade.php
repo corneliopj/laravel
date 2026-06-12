@@ -2,17 +2,10 @@
     $pageTitle = 'Editar Postura de Ovos';
 @endphp
 
-{{-- Inclui o partial head --}}
-@include('layouts.partials.head')
+@extends('layouts.app')
 
-<div class="wrapper">
-    {{-- Inclui o partial navbar --}}
-    @include('layouts.partials.navbar')
-    {{-- Inclui o partial sidebar --}}
-    @include('layouts.partials.sidebar')
-
-    <div class="content-wrapper px-4 py-2" style="min-height:797px;">
-        <div class="content-header">
+@section('content')
+<div class="content-header">
             <div class="container-fluid">
                 <div class="row mb-2">
                     <div class="col-sm-6">
@@ -143,20 +136,4 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    {{-- Inclui o partial footer --}}
-    @include('layouts.partials.footer')
-</div>
-
-{{-- Scripts específicos para esta view --}}
-<script>
-    $(document).ready(function() {
-        // Inicializa o Select2 para o campo de acasalamento
-        $('#acasalamento_id').select2({
-            theme: 'bootstrap4',
-            placeholder: "-- Selecione o Acasalamento --",
-            allowClear: true // Permite limpar a seleção
-        });
-    });
-</script>
+@endsection
