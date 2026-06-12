@@ -9,7 +9,7 @@ class SuinoController extends Controller
 {
     public function index()
     {
-        $suinos = Suino::orderBy('created_at', 'desc')->paginate(10);
+        $suinos = Suino::all();
         return view('suinos.index', compact('suinos'));
     }
 
@@ -20,41 +20,38 @@ class SuinoController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
-            'matricula' => 'required|unique:suinos,matricula',
-            'sexo' => 'required|in:Macho,Femea,A sexar',
+        $validated = $request->validate([
+            'matricula' => 'required|unique:suinos',
+            'sexo' => 'required',
             'vendavel' => 'boolean',
-            'ativo' => 'boolean',
         ]);
 
-        Suino::create($request->all());
+        Suino::create($validated);
+
         return redirect()->route('suinos.index')->with('success', 'Suíno cadastrado com sucesso!');
     }
 
-    public function edit($id)
+    public function edit(Suino $suino)
     {
-        $suino = Suino::findOrFail($id);
         return view('suinos.edit', compact('suino'));
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, Suino $suino)
     {
-        $request->validate([
-            'matricula' => 'required|unique:suinos,matricula,' . $id,
-            'sexo' => 'required|in:Macho,Femea,A sexar',
+        $validated = $request->validate([
+            'matricula' => 'required|unique:suinos,matricula,' . $suino->id,
+            'sexo' => 'required',
             'vendavel' => 'boolean',
-            'ativo' => 'boolean',
         ]);
 
-        $suino = Suino::findOrFail($id);
-        $suino->update($request->all());
+        $suino->update($validated);
+
         return redirect()->route('suinos.index')->with('success', 'Suíno atualizado com sucesso!');
     }
 
-    public function destroy($id)
+    public function destroy(Suino $suino)
     {
-        $suino = Suino::findOrFail($id);
-        $suino->update(['ativo' => 0]);
-        return redirect()->route('suinos.index')->with('success', 'Suíno inativado com sucesso!');
+        $suino->delete();
+        return redirect()->route('suinos.index')->with('success', 'Suíno removido com sucesso!');
     }
 }
