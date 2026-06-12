@@ -9,7 +9,7 @@ class SuinoController extends Controller
 {
     public function index()
     {
-        $suinos = Suino::all();
+        $suinos = Suino::paginate(10);
         return view('suinos.index', compact('suinos'));
     }
 
