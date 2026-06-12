@@ -3,7 +3,6 @@
 @endphp
 
 @include('layouts.partials.head')
-
 <div class="wrapper">
     @include('layouts.partials.navbar')
     @include('layouts.partials.sidebar')
