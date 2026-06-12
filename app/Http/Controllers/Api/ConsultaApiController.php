@@ -22,7 +22,7 @@ class ConsultaApiController extends Controller
 
         return response()->json([
             'data' => $venda->data_venda,
-            'cliente' => $venda->cliente->nome ?? 'Não informado',
+            'cliente' => $venda->cliente->nome_cliente ?? $venda->comprador ?? 'Não informado',
             'valor' => $venda->valor_total,
             'itens' => $venda->vendaItems->map(fn($item) => $item->ave->matricula ?? 'N/A')
         ]);
