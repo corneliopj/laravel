@@ -53,13 +53,16 @@ class ConsultaApiController extends Controller
                                 ->sum('valor');
 
             // 2. Soma de Comissões de Vendas no mês
-            // No sistema, comissões são calculadas com base nas vendas realizadas pelo usuário
-            $comissoes = \App\Models\Venda::where('user_id', $user->id)
+            // Segue a lógica do ContrachequeController: usa o valor da despesa de comissão vinculada
+            $vendasComComissao = \App\Models\Venda::where('user_id', $user->id)
+                                ->where('comissao_paga', true)
                                 ->whereBetween('data_venda', [$inicioMes, $fimMes])
-                                ->get()
-                                ->sum(function($venda) {
-                                    return ($venda->valor_total * ($venda->comissao_percentual ?? 0)) / 100;
-                                });
+                                ->with('despesaComissao')
+                                ->get();
+
+            $comissoes = $vendasComComissao->sum(function($venda) {
+                return $venda->despesaComissao ? $venda->despesaComissao->valor : 0;
+            });
 
             $saldo = ($creditos - $debitos) + $comissoes;
 
