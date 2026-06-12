@@ -24,7 +24,7 @@ class ConsultaApiController extends Controller
             'data' => $venda->data_venda,
             'cliente' => $venda->cliente->nome_cliente ?? $venda->comprador ?? 'Não informado',
             'valor' => $venda->valor_total,
-            'itens' => $venda->vendaItems->map(fn($item) => $item->ave->matricula ?? 'N/A')
+            'itens' => $venda->vendaItems->map(fn($item) => $item->descricao_item ?? 'N/A')
         ]);
     }
 
