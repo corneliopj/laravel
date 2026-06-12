@@ -41,20 +41,15 @@ class ConsultaApiController extends Controller
             $inicioMes = Carbon::now()->startOfMonth();
             $fimMes = Carbon::now()->endOfMonth();
 
-            $receitas = Receita::where('user_id', $user->id)
-                                ->whereBetween('data', [$inicioMes, $fimMes])
-                                ->sum('valor');
-
-            $despesas = Despesa::where('user_id', $user->id)
+            // O saldo do funcionário é a soma dos lançamentos no contracheque
+            $saldo = \App\Models\Contracheque::where('user_id', $user->id)
                                 ->whereBetween('data', [$inicioMes, $fimMes])
                                 ->sum('valor');
 
             return response()->json([
                 'funcionario' => $user->name,
                 'periodo' => $inicioMes->format('M/Y'),
-                'receitas' => $receitas,
-                'despesas' => $despesas,
-                'saldo_liquido' => $receitas - $despesas
+                'saldo_total' => $saldo
             ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Erro de Banco: ' . $e->getMessage()], 500);
