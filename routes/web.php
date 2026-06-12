@@ -88,8 +88,8 @@ Route::middleware(['auth'])->group(function () {
     // NOVO: Rota para buscar o tempo de eclosão de um tipo de ave
     Route::get('tipos_aves/{tipoAve}/tempo-eclosao', [TipoAveController::class, 'getTempoEclosao'])->name('tipos_aves.getTempoEclosao');
 
-    Route::resource('variacoes', VariacaoController::class);
-    Route::resource('lotes', LoteController::class);
+    Route::resource('suinos', \App\Http\Controllers\SuinoController::class);
+    Route::resource('suinos', \App\Http\Controllers\SuinoController::class);
 
     Route::resource('acasalamentos', AcasalamentoController::class);
     Route::resource('posturas_ovos', PosturaOvoController::class);
@@ -117,7 +117,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Rotas de Vendas (PDV)
         Route::get('vendas/search-aves-for-sale', [VendaController::class, 'searchAvesForSale'])->name('vendas.searchAvesForSale');
-        Route::resource('vendas', VendaController::class);
+        Route::resource('suinos', \App\Http\Controllers\SuinoController::class);
 
         // Rotas de Reservas (Pedidos/Orçamento) (NOVO)
         Route::get('reservas/search-aves-for-reserva', [ReservaController::class, 'searchAvesForReserva'])->name('reservas.searchAvesForReserva');
@@ -145,6 +145,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('plantel/{plantel}/movimentacoes/create', [MovimentacaoPlantelController::class, 'create'])->name('plantel.movimentacoes.create');
 
     // NOVO: Rotas para o Módulo Mortes (Centralizado)
-    Route::resource('mortes', MorteController::class);
+    Route::resource('suinos', \App\Http\Controllers\SuinoController::class);
 });
-Route::resource('suinos', SuinoController::class);
+Route::resource('suinos', \App\Http\Controllers\SuinoController::class);
