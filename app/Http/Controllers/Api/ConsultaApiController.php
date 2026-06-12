@@ -28,7 +28,7 @@ class ConsultaApiController extends Controller
         ]);
     }
 
-    public function saldoFuncionaria(Request $request)
+    public function saldoFuncionario(Request $request)
     {
         $request->validate(['nome' => 'required|string']);
         
