@@ -9,19 +9,24 @@ class SuinoController extends Controller
 {
     public function index()
     {
-        $suinos = Suino::paginate(10);
+        $suinos = Suino::with(['lote', 'variacao'])->paginate(10);
         return view('suinos.index', compact('suinos'));
     }
 
     public function create()
     {
-        return view('suinos.create');
+        $lotes = \App\Models\Lote::all();
+        $variacoes = \App\Models\Variacao::all();
+        return view('suinos.create', compact('lotes', 'variacoes'));
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
             'matricula' => 'required|unique:suinos',
+            'tipo' => 'required|in:matriz,transitorio',
+            'lote_id' => 'nullable|exists:lotes,id',
+            'variacao_id' => 'nullable|exists:variacoes,id',
             'sexo' => 'required',
             'vendavel' => 'boolean',
         ]);
@@ -29,6 +34,13 @@ class SuinoController extends Controller
         Suino::create($validated);
 
         return redirect()->route('suinos.index')->with('success', 'Suíno cadastrado com sucesso!');
+    }
+
+    public function show(Suino $suino)
+    {
+        // Carrega os relacionamentos para a view de detalhes
+        $suino->load(['lote', 'variacao', 'mortes']);
+        return view('suinos.show', compact('suino'));
     }
 
     public function edit(Suino $suino)
@@ -40,6 +52,9 @@ class SuinoController extends Controller
     {
         $validated = $request->validate([
             'matricula' => 'required|unique:suinos,matricula,' . $suino->id,
+            'tipo' => 'required|in:matriz,transitorio',
+            'lote_id' => 'nullable|exists:lotes,id',
+            'variacao_id' => 'nullable|exists:variacoes,id',
             'sexo' => 'required',
             'vendavel' => 'boolean',
         ]);
