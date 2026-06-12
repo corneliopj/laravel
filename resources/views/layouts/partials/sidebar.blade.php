@@ -67,6 +67,13 @@
                                 <p>Listar Aves</p>
                             </a>
                         </li>
+                        <li class="nav-item">
+                            <a href="{{ route('suinos.index') }}" class="nav-link {{ Request::routeIs('suinos.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-paw"></i> {{-- Ícone para Suínos --}}
+                                <p>Listar Suínos</p>
+                            </a>
+                        </li>
+
                         
                   <li class="nav-item {{ Request::routeIs('plantel.*') || Request::routeIs('movimentacoes-plantel.*') ? 'menu-open' : '' }}">
                     <a href="#" class="nav-link {{ Request::routeIs('plantel.*') || Request::routeIs('movimentacoes-plantel.*') ? 'active' : '' }}">
