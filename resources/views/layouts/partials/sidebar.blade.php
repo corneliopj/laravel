@@ -164,6 +164,12 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{{ route('financeiro.relatorios.index') }}" class="nav-link {{ Request::routeIs('financeiro.relatorios.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-chart-pie"></i>
+                    <p>Relatórios Financeiros</p>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{{ route('financeiro.receitas.index') }}" class="nav-link {{ Request::routeIs('financeiro.receitas.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-hand-holding-usd"></i>
                     <p>Receitas</p>
@@ -191,6 +197,12 @@
                 <a href="{{ route('financeiro.categorias.index') }}" class="nav-link {{ Request::routeIs('financeiro.categorias.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-tags"></i>
                     <p>Categorias</p>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{{ route('financeiro.contracheques.index') }}" class="nav-link {{ Request::routeIs('financeiro.contracheques.*') ? 'active' : '' }}">
+                    <i class="nav-icon fas fa-file-invoice-dollar"></i>
+                    <p>Contracheques</p>
                 </a>
             </li>
             <li class="nav-item">
