@@ -5,14 +5,13 @@ namespace App\Models;
 // Importa a classe Authenticatable para funcionalidades de autenticação
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-// use Laravel\Sanctum\HasApiTokens; // Removido: Não é necessário para autenticação baseada em sessão
 
 class User extends Authenticatable
 {
-    // Removido HasApiTokens daqui também
-    use HasFactory, Notifiable; 
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * As colunas que podem ser preenchidas massivamente.
