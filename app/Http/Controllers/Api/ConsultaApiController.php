@@ -30,30 +30,34 @@ class ConsultaApiController extends Controller
 
     public function saldoFuncionario(Request $request)
     {
-        $request->validate(['nome' => 'required|string']);
-        
-        $user = User::where('name', 'like', '%' . $request->nome . '%')->first();
-        if (!$user) {
-            return response()->json(['error' => 'Funcionário não encontrado.'], 404);
+        try {
+            $request->validate(['nome' => 'required|string']);
+            
+            $user = User::where('name', 'like', '%' . $request->nome . '%')->first();
+            if (!$user) {
+                return response()->json(['error' => 'Funcionário não encontrado.'], 404);
+            }
+
+            $inicioMes = Carbon::now()->startOfMonth();
+            $fimMes = Carbon::now()->endOfMonth();
+
+            $receitas = Receita::where('user_id', $user->id)
+                                ->whereBetween('data', [$inicioMes, $fimMes])
+                                ->sum('valor');
+
+            $despesas = Despesa::where('user_id', $user->id)
+                                ->whereBetween('data', [$inicioMes, $fimMes])
+                                ->sum('valor');
+
+            return response()->json([
+                'funcionario' => $user->name,
+                'periodo' => $inicioMes->format('M/Y'),
+                'receitas' => $receitas,
+                'despesas' => $despesas,
+                'saldo_liquido' => $receitas - $despesas
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Erro de Banco: ' . $e->getMessage()], 500);
         }
-
-        $inicioMes = Carbon::now()->startOfMonth();
-        $fimMes = Carbon::now()->endOfMonth();
-
-        $receitas = Receita::where('user_id', $user->id)
-                            ->whereBetween('data', [$inicioMes, $fimMes])
-                            ->sum('valor');
-
-        $despesas = Despesa::where('user_id', $user->id)
-                            ->whereBetween('data', [$inicioMes, $fimMes])
-                            ->sum('valor');
-
-        return response()->json([
-            'funcionario' => $user->name,
-            'periodo' => $inicioMes->format('M/Y'),
-            'receitas' => $receitas,
-            'despesas' => $despesas,
-            'saldo_liquido' => $receitas - $despesas
-        ]);
     }
 }
