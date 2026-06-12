@@ -200,7 +200,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a href="{{ route('financeiro.contracheques.index') }}" class="nav-link {{ Request::routeIs('financeiro.contracheques.*') ? 'active' : '' }}">
+                <a href="{{ route('financeiro.contracheque.index') }}" class="nav-link {{ Request::routeIs('financeiro.contracheque.*') ? 'active' : '' }}">
                     <i class="nav-icon fas fa-file-invoice-dollar"></i>
                     <p>Contracheques</p>
                 </a>
