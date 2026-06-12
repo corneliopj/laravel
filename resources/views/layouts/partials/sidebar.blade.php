@@ -86,7 +86,7 @@
         </ul>
     </li>
 
-    <!-- LINK IRMÃO: LISTAR SUÍNOS -->
+    <!-- Menu Suínos -->
     <li class="nav-item">
         <a href="{{ route('suinos.index') }}" class="nav-link {{ Request::routeIs('suinos.*') ? 'active' : '' }}">
             <i class="nav-icon fas fa-paw"></i>
