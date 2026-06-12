@@ -41,7 +41,7 @@ class ConsultaApiController extends Controller
             $inicioMes = Carbon::now()->startOfMonth();
             $fimMes = Carbon::now()->endOfMonth();
 
-            // O saldo do funcionário é a diferença entre lançamentos Positivos e Negativos
+            // 1. Lançamentos do Contracheque
             $creditos = \App\Models\Contracheque::where('user_id', $user->id)
                                 ->whereBetween('data', [$inicioMes, $fimMes])
                                 ->where('tipo_lancamento', 'Positivo')
@@ -52,13 +52,25 @@ class ConsultaApiController extends Controller
                                 ->where('tipo_lancamento', 'Negativo')
                                 ->sum('valor');
 
-            $saldo = $creditos - $debitos;
+            // 2. Soma de Comissões de Vendas no mês
+            // No sistema, comissões são calculadas com base nas vendas realizadas pelo usuário
+            $comissoes = \App\Models\Venda::where('user_id', $user->id)
+                                ->whereBetween('data_venda', [$inicioMes, $fimMes])
+                                ->get()
+                                ->sum(function($venda) {
+                                    return ($venda->valor_total * ($venda->comissao_percentual ?? 0)) / 100;
+                                });
+
+            $saldo = ($creditos - $debitos) + $comissoes;
 
             return response()->json([
                 'funcionario' => $user->name,
                 'periodo' => $inicioMes->format('M/Y'),
-                'creditos' => $creditos,
-                'debitos' => $debitos,
+                'detalhes' => [
+                    'contracheque_creditos' => $creditos,
+                    'contracheque_debitos' => $debitos,
+                    'comissoes_vendas' => $comissoes,
+                ],
                 'saldo_total' => $saldo
             ]);
         } catch (\Exception $e) {
