@@ -41,14 +41,24 @@ class ConsultaApiController extends Controller
             $inicioMes = Carbon::now()->startOfMonth();
             $fimMes = Carbon::now()->endOfMonth();
 
-            // O saldo do funcionário é a soma dos lançamentos no contracheque
-            $saldo = \App\Models\Contracheque::where('user_id', $user->id)
+            // O saldo do funcionário é a diferença entre lançamentos Positivos e Negativos
+            $creditos = \App\Models\Contracheque::where('user_id', $user->id)
                                 ->whereBetween('data', [$inicioMes, $fimMes])
+                                ->where('tipo_lancamento', 'Positivo')
                                 ->sum('valor');
+
+            $debitos = \App\Models\Contracheque::where('user_id', $user->id)
+                                ->whereBetween('data', [$inicioMes, $fimMes])
+                                ->where('tipo_lancamento', 'Negativo')
+                                ->sum('valor');
+
+            $saldo = $creditos - $debitos;
 
             return response()->json([
                 'funcionario' => $user->name,
                 'periodo' => $inicioMes->format('M/Y'),
+                'creditos' => $creditos,
+                'debitos' => $debitos,
                 'saldo_total' => $saldo
             ]);
         } catch (\Exception $e) {
