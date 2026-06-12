@@ -70,7 +70,7 @@
                 </a>
                 <ul class="nav nav-treeview">
                     <li class="nav-item">
-                        <a href="{{ route('mortes.index') }}" class="nav-link {{ Request::// routeIs('mortes.index') ? 'active' : '' }}">
+                        <a href="{{ route('mortes.index') }}" class="nav-link {{ Request::routeIs('mortes.index') ? 'active' : '' }}">
                             <i class="far fa-circle nav-icon"></i>
                             <p>Listar Mortes</p>
                         </a>
