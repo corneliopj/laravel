@@ -21,14 +21,13 @@ return new class extends Migration
 
         // 2. Se a coluna ave_id ainda existe, precisamos migrar os dados e removê-la
         if (Schema::hasColumn('mortes', 'ave_id')) {
-            // Remove a Foreign Key primeiro para permitir a deleção da coluna
-            Schema::table('mortes', function (Blueprint $table) {
-                try {
-                    $table->dropForeign('mortes_ave_id_foreign');
-                } catch (\Exception $e) {
-                    // Caso a FK já tenha sido removida manualmente
-                }
-            });
+            
+            // Remove a Foreign Key usando SQL bruto para que o try-catch funcione instantaneamente
+            try {
+                DB::statement('ALTER TABLE mortes DROP FOREIGN KEY mortes_ave_id_foreign');
+            } catch (\Exception $e) {
+                // Se a FK não existir, apenas ignoramos e seguimos em frente
+            }
 
             // Migra os dados de ave_id para animal_id
             DB::table('mortes')->update([
