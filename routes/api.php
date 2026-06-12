@@ -1,42 +1,27 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\VendaApiController;
 use App\Http\Controllers\Api\ConsultaApiController;
+use App\Http\Controllers\Api\VendaApiController;
 
 /*
 |--------------------------------------------------------------------------
 | API Routes
 |--------------------------------------------------------------------------
 |
-| Here is where you can register API routes for your application.
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
 |
 */
 
-// Usando um Middleware customizado simples para validar o api_token do banco
-Route::middleware(function ($request, $next) {
-    $token = $request->header('X-API-TOKEN') ?? $request->query('token');
+// Grupo de Rotas Protegidas pelo Token Simples
+Route::middleware(['token.auth'])->group(function () {
     
-    if (!$token) {
-        return response()->json(['error' => 'Token não fornecido'], 401);
-    }
+    // Rotas de Consulta
+    Route::get('v1/ultimas-vendas', [ConsultaApiController::class, 'ultimaVenda'])->name('api.v1.ultimaVenda');
+    Route::get('v1/saldo-funcionario', [ConsultaApiController::class, 'saldoFuncionario'])->name('api.v1.saldoFuncionario');
 
-    $user = \App\Models\User::where('api_token', $token)->first();
-
-    if (!$user) {
-        return response()->json(['error' => 'Token inválido'], 401);
-    }
-
-    // Autentica o usuário para a requisição atual
-// auth()->login($user); // Se necessário para outras partes do sistema
-    
-    return $next($request);
-})->group(function () {
-    // Vendas Rápidas
-    Route::post('vendas/rapida', [VendaApiController::class, 'store']);
-    
-    // Consultas Rápidas
-    Route::get('consultas/ultima-venda', [ConsultaApiController::class, 'ultimaVenda']);
-    Route::get('consultas/saldo-funcionario', [ConsultaApiController::class, 'saldoFuncionaria']);
+    // Rotas de Vendas
+    Route::post('v1/vendas', [VendaApiController::class, 'registrarVenda'])->name('api.v1.registrarVenda');
 });
