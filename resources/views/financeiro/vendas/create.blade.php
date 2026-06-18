@@ -26,6 +26,8 @@
             <div class="container-fluid">
                 <form action="{{ route('financeiro.vendas.store') }}" method="POST">
                     @csrf
+                    {{-- Token de idempotência para prevenir double-submit (double/triple click) --}}
+                    <input type="hidden" name="_idempotency_token" id="_idempotency_token" value="{{ md5(uniqid('', true)) }}">
                     <div class="row">
                         <div class="col-md-6">
                             <div class="card card-primary">
@@ -124,10 +126,11 @@
 
                     <div class="row mt-3">
                         <div class="col-md-12">
-                            <button type="submit" class="btn btn-success">
-                                <i class="fas fa-save"></i> Salvar Venda
+                            <button type="submit" id="btn-salvar-venda" class="btn btn-success">
+                                <i class="fas fa-save"></i> <span class="btn-text">Salvar Venda</span>
+                                <span class="btn-loading d-none"><i class="fas fa-spinner fa-spin"></i> Processando...</span>
                             </button>
-                            <a href="{{ route('financeiro.vendas.index') }}" class="btn btn-secondary">
+                            <a href="{{ route('financeiro.vendas.index') }}" class="btn btn-secondary" id="btn-cancelar">
                                 Cancelar
                             </a>
                         </div>
@@ -144,6 +147,62 @@ document.addEventListener('DOMContentLoaded', function() {
     const itemsContainer = document.getElementById('items_container');
     const addItemBtn = document.getElementById('add_item_btn');
     const descontoInput = document.getElementById('desconto');
+
+    // === PROTEÇÃO CONTRA DOUBLE-SUBMIT ===
+    const form = document.querySelector('form[action="{{ route('financeiro.vendas.store') }}"]');
+    const btnSalvar = document.getElementById('btn-salvar-venda');
+    const btnText = btnSalvar ? btnSalvar.querySelector('.btn-text') : null;
+    const btnLoading = btnSalvar ? btnSalvar.querySelector('.btn-loading') : null;
+    const btnCancelar = document.getElementById('btn-cancelar');
+    let formSubmitted = false;
+
+    if (form && btnSalvar) {
+        form.addEventListener('submit', function(e) {
+            // Se já foi submetido, bloqueia
+            if (formSubmitted) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Validação básica client-side antes de bloquear
+            const comprador = document.getElementById('comprador')?.value?.trim();
+            const dataVenda = document.querySelector('input[name="data_venda"]')?.value;
+            const metodoPagamento = document.querySelector('select[name="metodo_pagamento"]')?.value;
+            const itemRows = document.querySelectorAll('.item-row');
+
+            if (!comprador || !dataVenda || !metodoPagamento || itemRows.length === 0) {
+                // Deixa o HTML5 validation agir
+                return true;
+            }
+
+            // Verifica se pelo menos um item tem quantidade e preço
+            let hasValidItem = false;
+            itemRows.forEach(row => {
+                const qtd = row.querySelector('input[name$="[quantidade]"]')?.value;
+                const preco = row.querySelector('input[name$="[preco_unitario]"]')?.value;
+                if (qtd && preco && parseFloat(qtd) > 0 && parseFloat(preco) > 0) {
+                    hasValidItem = true;
+                }
+            });
+
+            if (!hasValidItem) {
+                return true; // Deixa validação do servidor agir
+            }
+
+            // === BLOQUEIA O FORMULÁRIO ===
+            formSubmitted = true;
+            btnSalvar.disabled = true;
+            if (btnText) btnText.classList.add('d-none');
+            if (btnLoading) btnLoading.classList.remove('d-none');
+            if (btnCancelar) btnCancelar.style.display = 'none';
+
+            // Adiciona classe visual no form
+            form.classList.add('form-submitted');
+
+            // Permite o submit normal continuar
+            return true;
+        });
+    }
 
     // Função para inicializar uma linha de item
     function initializeItemRow(rowElement) {
@@ -211,17 +270,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Função para atualizar totais
     function updateTotals() {
         let subtotal = 0;
-        
+
         document.querySelectorAll('.item-row').forEach(row => {
             const quantidade = parseFloat(row.querySelector('input[name$="[quantidade]"]').value) || 0;
             const preco = parseFloat(row.querySelector('input[name$="[preco_unitario]"]').value) || 0;
             subtotal += quantidade * preco;
         });
-        
+
         const desconto = parseFloat(descontoInput.value) || 0;
         const total = subtotal - desconto;
-        
-        document.getElementById('total-venda').textContent = 
+
+        document.getElementById('total-venda').textContent =
             'R$ ' + total.toFixed(2).replace('.', ',');
     }
 
@@ -240,23 +299,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 'plantelOptions' => $plantelOptions,
             ])
         `.replace(/ITEM_INDEX_PLACEHOLDER/g, itemIndex);
-        
+
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = template.trim();
         const newRow = tempDiv.firstChild;
-        
+
         itemsContainer.appendChild(newRow);
         initializeItemRow(newRow);
-        
+
         itemIndex++;
         updateTotals();
     });
 
     // Evento para desconto
     descontoInput.addEventListener('input', updateTotals);
-    
+
     // Atualizar totais inicialmente
     updateTotals();
 });
 </script>
+@push('styles')
+<style>
+    /* Estilos para estado de submissão */
+    .form-submitted {
+        opacity: 0.85;
+        pointer-events: none;
+    }
+    .form-submitted input,
+    .form-submitted select,
+    .form-submitted textarea,
+    .form-submitted button:not(#btn-salvar-venda) {
+        pointer-events: none;
+    }
+    .btn-loading {
+        display: inline-flex !important;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .d-none {
+        display: none !important;
+    }
+</style>
+@endpush
 @endpush

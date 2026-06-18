@@ -92,123 +92,157 @@ class VendaController extends Controller
 
     /**
      * Armazena uma nova venda no banco de dados
+     * Proteção contra duplicidade via token de idempotência (evita double/triple submit)
      */
-  public function store(Request $request)
-{
-    // Validação dos dados
-    $request->validate([
-        'comprador' => 'required',
-        'data_venda' => 'required|date',
-        'metodo_pagamento' => 'required',
-        'itens' => 'required|array|min:1',
-        'itens.*.descricao_item' => 'required', // Corrigido para descricao_item
-        'itens.*.quantidade' => 'required|numeric|min:1',
-        'itens.*.preco_unitario' => 'required|numeric|min:0.01',
-    ]);
+    public function store(Request $request)
+    {
+        // === IDEMPOTÊNCIA: Verifica token único para evitar submissão duplicada ===
+        $idempotencyToken = $request->input('_idempotency_token');
+        if (!$idempotencyToken) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Token de segurança inválido. Por favor, recarregue a página e tente novamente.');
+        }
 
-    // Calcula o valor total dos itens
-    $valorTotal = collect($request->itens)->sum(function ($item) {
-        return $item['quantidade'] * $item['preco_unitario'];
-    });
+        // Chave única na session para este token
+        $sessionKey = 'venda_idempotency_' . $idempotencyToken;
 
-    // Aplica desconto
-    $desconto = $request->desconto ?? 0;
-    $valorFinal = $valorTotal - $desconto;
-
-    // Configura comissão de 15%
-    $comissaoPercentual = 15.0; // Nome da variável ajustado para comissao_percentual
-    $valorComissao = ($valorFinal * $comissaoPercentual) / 100;
-
-    // Usuário logado (vendedor)
-    $vendedor = auth()->user();
-
-    // Inicia transação para garantir integridade dos dados
-    DB::beginTransaction();
-    try {
-        // Cria a venda
-        $venda = Venda::create([
-            'comprador' => $request->comprador,
-            'data_venda' => $request->data_venda,
-            'metodo_pagamento' => $request->metodo_pagamento,
-            'valor_total' => $valorTotal,
-            'desconto' => $desconto,
-            'valor_final' => $valorFinal,
-            'observacoes' => $request->observacoes,
-            'status' => 'concluida',
-            'user_id' => $vendedor ? $vendedor->id : null,
-            'comissao_percentual' => $comissaoPercentual, // Nome da coluna corrigido
-            'comissao_paga' => true,
-        ]);
-
-        // Cria os itens da venda
-        foreach ($request->itens as $item) {
-            $vendaItem = \App\Models\VendaItem::create([
-                'venda_id' => $venda->id,
-                'descricao_item' => $item['descricao_item'],
-                'ave_id' => $item['ave_id'] ?? null,
-                'plantel_id' => $item['plantel_id'] ?? null,
-                'quantidade' => $item['quantidade'],
-                'preco_unitario' => $item['preco_unitario'],
-                'valor_total_item' => $item['quantidade'] * $item['preco_unitario'],
+        if (session()->has($sessionKey)) {
+            // Token já foi processado → submissão duplicada
+            Log::warning('Tentativa de submissão duplicada de venda', [
+                'token' => $idempotencyToken,
+                'user_id' => auth()->id(),
+                'ip' => $request->ip(),
             ]);
 
-            // Atualiza status das aves vendidas
-            if (isset($item['ave_id'])) {
-                $ave = Ave::find($item['ave_id']);
-                if ($ave) {
-                    $ave->update([
-                        'ativo' => false,
-                        'vendavel' => false,
-                        'data_inativado' => now(),
+            return redirect()->route('financeiro.vendas.index')
+                ->with('warning', 'Esta venda já foi processada. Não é necessário enviar o formulário novamente.');
+        }
+
+        // Marca token como "em processamento" (evita race condition)
+        session([$sessionKey => 'processing']);
+
+        // Validação dos dados
+        $request->validate([
+            'comprador' => 'required',
+            'data_venda' => 'required|date',
+            'metodo_pagamento' => 'required',
+            'itens' => 'required|array|min:1',
+            'itens.*.descricao_item' => 'required',
+            'itens.*.quantidade' => 'required|numeric|min:1',
+            'itens.*.preco_unitario' => 'required|numeric|min:0.01',
+        ]);
+
+        // Calcula o valor total dos itens
+        $valorTotal = collect($request->itens)->sum(function ($item) {
+            return $item['quantidade'] * $item['preco_unitario'];
+        });
+
+        // Aplica desconto
+        $desconto = $request->desconto ?? 0;
+        $valorFinal = $valorTotal - $desconto;
+
+        // Configura comissão de 15%
+        $comissaoPercentual = 15.0;
+        $valorComissao = ($valorFinal * $comissaoPercentual) / 100;
+
+        // Usuário logado (vendedor)
+        $vendedor = auth()->user();
+
+        // Inicia transação para garantir integridade dos dados
+        DB::beginTransaction();
+        try {
+            // Cria a venda
+            $venda = Venda::create([
+                'comprador' => $request->comprador,
+                'data_venda' => $request->data_venda,
+                'metodo_pagamento' => $request->metodo_pagamento,
+                'valor_total' => $valorTotal,
+                'desconto' => $desconto,
+                'valor_final' => $valorFinal,
+                'observacoes' => $request->observacoes,
+                'status' => 'concluida',
+                'user_id' => $vendedor ? $vendedor->id : null,
+                'comissao_percentual' => $comissaoPercentual,
+                'comissao_paga' => true,
+            ]);
+
+            // Cria os itens da venda
+            foreach ($request->itens as $item) {
+                $vendaItem = \App\Models\VendaItem::create([
+                    'venda_id' => $venda->id,
+                    'descricao_item' => $item['descricao_item'],
+                    'ave_id' => $item['ave_id'] ?? null,
+                    'plantel_id' => $item['plantel_id'] ?? null,
+                    'quantidade' => $item['quantidade'],
+                    'preco_unitario' => $item['preco_unitario'],
+                    'valor_total_item' => $item['quantidade'] * $item['preco_unitario'],
+                ]);
+
+                // Atualiza status das aves vendidas
+                if (isset($item['ave_id'])) {
+                    $ave = Ave::find($item['ave_id']);
+                    if ($ave) {
+                        $ave->update([
+                            'ativo' => false,
+                            'vendavel' => false,
+                            'data_inativado' => now(),
+                        ]);
+                    }
+                }
+
+                // Registra movimentação do plantel se aplicável
+                if (isset($item['plantel_id'])) {
+                    \App\Models\MovimentacaoPlantel::create([
+                        'plantel_id' => $item['plantel_id'],
+                        'tipo_movimentacao' => 'saida_venda',
+                        'quantidade' => $item['quantidade'],
+                        'data_movimentacao' => $request->data_venda,
+                        'observacoes' => 'Venda #' . $venda->id . ' - Comprador: ' . $request->comprador,
                     ]);
                 }
             }
 
-            // Registra movimentação do plantel se aplicável
-            if (isset($item['plantel_id'])) {
-                \App\Models\MovimentacaoPlantel::create([
-                    'plantel_id' => $item['plantel_id'],
-                    'tipo_movimentacao' => 'saida_venda',
-                    'quantidade' => $item['quantidade'],
-                    'data_movimentacao' => $request->data_venda,
-                    'observacoes' => 'Venda #' . $venda->id . ' - Comprador: ' . $request->comprador,
+            // Cria despesa de comissão se houver vendedor e comissão > 0
+            if ($vendedor && $valorComissao > 0) {
+                $categoriaComissao = \App\Models\Categoria::firstOrCreate(
+                    ['nome' => 'Comissões'],
+                    ['descricao' => 'Despesas geradas por comissões de vendas.']
+                );
+
+                $despesaComissao = \App\Models\Despesa::create([
+                    'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
+                    'valor' => $valorComissao,
+                    'data' => now(),
+                    'categoria_id' => $categoriaComissao->id,
+                    'observacoes' => 'Comissão de ' . $comissaoPercentual . '% referente à venda #' . $venda->id,
+                    'id_venda' => $venda->id, // <-- NOVO: vincula a despesa à venda de origem
                 ]);
+
+                // Vincula a despesa de comissão à venda (relação existente despesa_id)
+                $venda->update(['despesa_id' => $despesaComissao->id]);
             }
+
+            DB::commit();
+
+            // === IDEMPOTÊNCIA: Marca token como processado com sucesso ===
+            session([$sessionKey => 'completed']);
+
+            return redirect()->route('financeiro.vendas.show', $venda->id)
+                ->with('success', 'Venda registrada com sucesso! Comissão de ' . $comissaoPercentual . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erro ao criar venda: ' . $e->getMessage());
+
+            // Em caso de erro, remove o token para permitir nova tentativa
+            session()->forget($sessionKey);
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
         }
-
-        // Cria despesa de comissão se houver vendedor e comissão > 0
-        if ($vendedor && $valorComissao > 0) {
-            $categoriaComissao = \App\Models\Categoria::firstOrCreate(
-                ['nome' => 'Comissões'],
-                ['descricao' => 'Despesas geradas por comissões de vendas.']
-            );
-
-            $despesaComissao = \App\Models\Despesa::create([
-                'descricao' => 'Comissão de Venda #' . $venda->id . ' - Vendedor: ' . $vendedor->name,
-                'valor' => $valorComissao,
-                'data' => now(),
-                'categoria_id' => $categoriaComissao->id,
-                'observacoes' => 'Comissão de ' . $comissaoPercentual . '% referente à venda #' . $venda->id,
-            ]);
-
-            // Vincula a despesa de comissão à venda
-            $venda->update(['despesa_id' => $despesaComissao->id]);
-        }
-
-        DB::commit();
-
-        return redirect()->route('financeiro.vendas.show', $venda->id)
-            ->with('success', 'Venda registrada com sucesso! Comissão de ' . $comissaoPercentual . '% (R$ ' . number_format($valorComissao, 2, ',', '.') . ') gerada automaticamente.');
-
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erro ao criar venda: ' . $e->getMessage());
-
-        return redirect()->back()
-            ->withInput()
-            ->with('error', 'Erro ao registrar venda: ' . $e->getMessage());
     }
-}
 
     /**
      * Exibe os detalhes de uma venda específica

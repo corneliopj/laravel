@@ -62,4 +62,12 @@ class Venda extends Model
     {
         return $this->belongsTo(Despesa::class, 'despesa_id');
     }
+
+    /**
+     * Despesas de comissão originadas por esta venda (via id_venda na tabela despesas).
+     */
+    public function despesasComissao()
+    {
+        return $this->hasMany(Despesa::class, 'id_venda');
+    }
 }
