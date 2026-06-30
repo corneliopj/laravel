@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Log;
+use Intervention\Image\Facades\Image;
 
 class AveService
 {
@@ -84,8 +85,22 @@ class AveService
         $data['ativo'] = true;
 
         if ($foto) {
-            $imagePath = $foto->store('uploads/aves', 'public');
-            $data['foto_path'] = $imagePath;
+            $matricula = Str::slug($data['matricula']); // Usar a matrícula para o nome do arquivo
+            $extension = $foto->getClientOriginalExtension();
+            $fileName = $matricula . '.' . $extension;
+            $destinationPath = public_path('/aves_fotos'); // Caminho completo para a pasta public
+
+            // Criar o diretório se não existir
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            // Redimensionar e salvar a imagem
+            Image::make($foto)->resize(150, null, function ($constraint) {
+                $constraint->aspectRatio();
+            })->save($destinationPath . '/' . $fileName);
+
+            $data['foto_path'] = 'aves_fotos/' . $fileName; // Salvar o caminho relativo para o banco
         } else {
             $data['foto_path'] = null;
         }
@@ -98,17 +113,33 @@ class AveService
      */
     public function updateAve(Ave $ave, array $data, $foto = null, $removerFotoAtual = false)
     {
-        if ($removerFotoAtual && $ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-            Storage::disk('public')->delete($ave->foto_path);
+        if ($removerFotoAtual) {
+            if ($ave->foto_path && file_exists(public_path($ave->foto_path))) {
+                unlink(public_path($ave->foto_path));
+            }
             $data['foto_path'] = null;
         }
 
         if ($foto) {
-            if ($ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-                Storage::disk('public')->delete($ave->foto_path);
+            // Se já existe uma foto e não estamos removendo-a explicitamente, a substituímos
+            if ($ave->foto_path && file_exists(public_path($ave->foto_path))) {
+                unlink(public_path($ave->foto_path));
             }
-            $imagePath = $foto->store('uploads/aves', 'public');
-            $data['foto_path'] = $imagePath;
+            
+            $matricula = Str::slug($data['matricula']);
+            $extension = $foto->getClientOriginalExtension();
+            $fileName = $matricula . '.' . $extension;
+            $destinationPath = public_path('/aves_fotos');
+
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0777, true);
+            }
+
+            Image::make($foto)->resize(150, null, function ($constraint) {
+                $constraint->aspectRatio();
+            })->save($destinationPath . '/' . $fileName);
+
+            $data['foto_path'] = 'aves_fotos/' . $fileName;
         }
 
         $ave->update($data);
@@ -144,8 +175,8 @@ class AveService
     {
         $ave = Ave::withTrashed()->findOrFail($id);
 
-        if ($ave->foto_path && Storage::disk('public')->exists($ave->foto_path)) {
-            Storage::disk('public')->delete($ave->foto_path);
+        if ($ave->foto_path && file_exists(public_path($ave->foto_path))) {
+            unlink(public_path($ave->foto_path));
         }
 
         return $ave->forceDelete();
