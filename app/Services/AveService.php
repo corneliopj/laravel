@@ -96,7 +96,7 @@ class AveService
             }
 
             // Redimensionar e salvar a imagem
-            Image::make($foto)->resize(150, null, function ($constraint) {
+            Image::read($foto)->resize(150, null, function ($constraint) {
                 $constraint->aspectRatio();
             })->save($destinationPath . '/' . $fileName);
 
@@ -135,7 +135,7 @@ class AveService
                 mkdir($destinationPath, 0777, true);
             }
 
-            Image::make($foto)->resize(150, null, function ($constraint) {
+            Image::read($foto)->resize(150, null, function ($constraint) {
                 $constraint->aspectRatio();
             })->save($destinationPath . '/' . $fileName);
 
