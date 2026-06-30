@@ -95,10 +95,8 @@ class AveService
                 mkdir($destinationPath, 0777, true);
             }
 
-            // Redimensionar e salvar a imagem
-            Image::read($foto)->resize(150, null, function ($constraint) {
-                $constraint->aspectRatio();
-            })->save($destinationPath . '/' . $fileName);
+            // Redimensionar e salvar a imagem (150x150px, preenchendo o quadrado)
+            Image::read($foto)->cover(150, 150)->save($destinationPath . '/' . $fileName);
 
             $data['foto_path'] = 'aves_fotos/' . $fileName; // Salvar o caminho relativo para o banco
         } else {
@@ -135,9 +133,7 @@ class AveService
                 mkdir($destinationPath, 0777, true);
             }
 
-            Image::read($foto)->resize(150, null, function ($constraint) {
-                $constraint->aspectRatio();
-            })->save($destinationPath . '/' . $fileName);
+            Image::read($foto)->cover(150, 150)->save($destinationPath . '/' . $fileName);
 
             $data['foto_path'] = 'aves_fotos/' . $fileName;
         }
