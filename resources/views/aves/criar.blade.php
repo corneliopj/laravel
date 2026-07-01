@@ -86,6 +86,26 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
+                                        <label for="pai_id">Pai (Matrícula)</label>
+                                        <select class="form-control" id="pai_id" name="pai_id">
+                                            <option value="">Selecione o pai (opcional)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mae_id">Mãe (Matrícula)</label>
+                                        <select class="form-control" id="mae_id" name="mae_id">
+                                            <option value="">Selecione a mãe (opcional)</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="criatorio_origem">Criatório de Origem</label>
+                                        <input type="text" class="form-control" id="criatorio_origem" name="criatorio_origem" placeholder="Digite o criatório de origem" value="{{ old('criatorio_origem') }}" maxlength="20">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="registro_abrasb">Registro na ABRASB</label>
+                                        <input type="text" class="form-control" id="registro_abrasb" name="registro_abrasb" placeholder="Digite o registro ABRASB" value="{{ old('registro_abrasb') }}" maxlength="15">
+                                    </div>
+                                    <div class="form-group">
                                         <label for="lote_id">Lote</label>
                                         <select class="form-control" id="lote_id" name="lote_id">
                                             <option value="">Selecione o lote (opcional)</option>
@@ -106,6 +126,36 @@
                                                 <option value="">Nenhuma incubação disponível</option>
                                             @endforelse
                                         </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="pai_id">Pai (Matrícula)</label>
+                                        <select class="form-control" id="pai_id" name="pai_id">
+                                            <option value="">Selecione o pai (opcional)</option>
+                                            @foreach ($avesOptions as $aveOption)
+                                                @if($aveOption->sexo == 'Macho')
+                                                    <option value="{{ $aveOption->id }}" {{ old('pai_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mae_id">Mãe (Matrícula)</label>
+                                        <select class="form-control" id="mae_id" name="mae_id">
+                                            <option value="">Selecione a mãe (opcional)</option>
+                                            @foreach ($avesOptions as $aveOption)
+                                                @if($aveOption->sexo == 'Femea')
+                                                    <option value="{{ $aveOption->id }}" {{ old('mae_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="criatorio_origem">Criatório de Origem</label>
+                                        <input type="text" class="form-control" id="criatorio_origem" name="criatorio_origem" placeholder="Digite o criatório de origem" value="{{ old('criatorio_origem') }}" maxlength="20">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="registro_abrasb">Registro na ABRASB</label>
+                                        <input type="text" class="form-control" id="registro_abrasb" name="registro_abrasb" placeholder="Digite o registro ABRASB" value="{{ old('registro_abrasb') }}" maxlength="15">
                                     </div>
                                     <div class="form-group">
                                         <label for="data_eclosao">Data de Eclosão</label>
