@@ -144,6 +144,41 @@
                                     </div>
 
                                     <div class="mb-3">
+                                        <label for="pai_id" class="form-label">Pai (Matrícula)</label>
+                                        <select class="form-select form-select-sm" id="pai_id" name="pai_id">
+                                            <option value="">Selecione o pai (opcional)</option>
+                                            @foreach ($avesOptions as $aveOption)
+                                                @if($aveOption->sexo == 'Macho')
+                                                    <option value="{{ $aveOption->id }}" {{ old('pai_id', $ave->pai_id) == $aveOption->id ? 'selected' : '' }}>
+                                                        {{ $aveOption->matricula }}
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="mae_id" class="form-label">Mãe (Matrícula)</label>
+                                        <select class="form-select form-select-sm" id="mae_id" name="mae_id">
+                                            <option value="">Selecione a mãe (opcional)</option>
+                                            @foreach ($avesOptions as $aveOption)
+                                                @if($aveOption->sexo == 'Femea')
+                                                    <option value="{{ $aveOption->id }}" {{ old('mae_id', $ave->mae_id) == $aveOption->id ? 'selected' : '' }}>
+                                                        {{ $aveOption->matricula }}
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="criatorio_origem" class="form-label">Criatório de Origem</label>
+                                        <input type="text" class="form-control form-control-sm" id="criatorio_origem" name="criatorio_origem" value="{{ old('criatorio_origem', $ave->criatorio_origem) }}" maxlength="20">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="registro_abrasb" class="form-label">Registro na ABRASB</label>
+                                        <input type="text" class="form-control form-control-sm" id="registro_abrasb" name="registro_abrasb" value="{{ old('registro_abrasb', $ave->registro_abrasb) }}" maxlength="15">
+                                    </div>
+
+                                    <div class="mb-3">
                                         <label for="foto" class="form-label">Foto</label>
                                         @if ($ave->foto_path)
                                             <div class="mb-2">
