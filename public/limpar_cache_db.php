@@ -1,15 +1,18 @@
 <?php
 require __DIR__ . '/../vendor/autoload.php';
- = require_once __DIR__ . '/../bootstrap/app.php';
- = ->make(Illuminate\Contracts\Console\Kernel::class);
+$app = require_once __DIR__ . '/../bootstrap/app.php';
+$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
-echo "Limpando cache de config...<br>";
-\Illuminate\Support\Facades\Artisan::call('config:clear');
-\Illuminate\Support\Facades\Artisan::call('cache:clear');
-\Illuminate\Support\Facades\Artisan::call('view:clear');
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
+
+echo "Limpando cache...<br>";
+Artisan::call('config:clear');
+Artisan::call('cache:clear');
+Artisan::call('view:clear');
 
 echo "Verificando colunas na tabela 'aves':<br>";
-$columns = \Illuminate\Support\Facades\DB::select('DESCRIBE aves');
+$columns = DB::select('DESCRIBE aves');
 foreach ($columns as $column) {
     echo $column->Field . "<br>";
 }
