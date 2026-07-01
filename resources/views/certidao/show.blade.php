@@ -248,34 +248,35 @@
             </div>
 
             <div class="section">
-                <h2>Origem da Incubação</h2>
-                {{-- Adicionado operador null-safe '?' para lidar com ave->incubacao nula --}}
-                <p class="info-row"><strong>Lote:</strong> <span>{{ $ave->lote?->identificacao_lote ?? 'N/A' }}</span></p>
-                <p class="info-row"><strong>Incubação ID:</strong> <span>{{ $ave->incubacao?->id ?? 'N/A' }}</span></p>
-                <p class="info-row"><strong>Data Entrada Incubadora:</strong> <span>{{ $ave->incubacao?->data_entrada_incubadora?->format('d/m/Y') ?? 'N/A' }}</span></p>
-                <p class="info-row"><strong>Quantidade Ovos Incubados:</strong> <span>{{ $ave->incubacao?->quantidade_ovos ?? 'N/A' }}</span></p>
-                <p class="info-row"><strong>Quantidade Eclodidos:</strong> <span>{{ $ave->incubacao?->quantidade_eclodidos ?? 'N/A' }}</span></p>
+                <h2>Dados Genótipos</h2>
+                @if($ave->pai || $ave->mae || $ave->criatorio_origem || $ave->registro_abrasb)
+                    @if($ave->pai) <p class="info-row"><strong>Pai:</strong> <span>{{ $ave->pai->matricula }}</span></p> @endif
+                    @if($ave->mae) <p class="info-row"><strong>Mãe:</strong> <span>{{ $ave->mae->matricula }}</span></p> @endif
+                    @if($ave->criatorio_origem) <p class="info-row"><strong>Criatório:</strong> <span>{{ $ave->criatorio_origem }}</span></p> @endif
+                    @if($ave->registro_abrasb) <p class="info-row"><strong>Registro ABRASB:</strong> <span>{{ $ave->registro_abrasb }}</span></p> @endif
+                @else
+                    <p class="info-row"><span>Sem dados de genótipo registrados.</span></p>
+                @endif
 
-                {{-- Seção de Filiação (visível apenas se houver dados de acasalamento) --}}
-                @if ($ave->incubacao && $ave->incubacao->posturaOvo && $ave->incubacao->posturaOvo->acasalamento)
-                    @php
-                        $acasalamento = $ave->incubacao->posturaOvo->acasalamento;
-                        $macho = $acasalamento->macho;
-                        $femea = $acasalamento->femea;
-                    @endphp
-                    <h2 class="mt-4">Filiação</h2>
-                    <p class="info-row">
-                        <strong>Filiação:</strong>
-                        <span>
-                            @if($macho) {{ $macho->matricula }} @else N/A @endif
-                            e
-                            @if($femea) {{ $femea->matricula }} @else N/A @endif
-                        </span>
-                    </p>
-                    <p class="info-row"><strong>Acasalamento ID:</strong> <span>{{ $acasalamento->id ?? 'N/A' }}</span></p>
+                @if($ave->incubacao)
+                    <h2 class="mt-4">Incubação</h2>
+                    <p class="info-row"><strong>Lote:</strong> <span>{{ $ave->lote?->identificacao_lote ?? 'N/A' }}</span></p>
+                    <p class="info-row"><strong>Data Entrada:</strong> <span>{{ $ave->incubacao->data_entrada_incubadora?->format('d/m/Y') ?? 'N/A' }}</span></p>
                 @endif
             </div>
         </div> {{-- Fim do main-content-grid --}}
+
+        {{-- Faixa de Aviso de Venda ou Morte --}}
+        @if ($ave->morte || ($ave->vendaItems && $ave->vendaItems->isNotEmpty()))
+            <div style="background-color: #ffcccc; border: 2px solid #cc0000; color: #8b0000; padding: 15px; margin-bottom: 20px; text-align: center; font-weight: bold; border-radius: 8px;">
+                @if ($ave->morte)
+                    Ave falecida em {{ $ave->morte->data_morte->format('d/m/Y') }}
+                @elseif ($ave->vendaItems && $ave->vendaItems->isNotEmpty())
+                    @php $venda = $ave->vendaItems->first()->venda; @endphp
+                    Vendido a {{ $venda->comprador ?? 'Cliente' }} em {{ $venda->data_venda ? $venda->data_venda->format('d/m/Y') : 'Data não informada' }}
+                @endif
+            </div>
+        @endif
 
         <div class="validation-section">
             <div class="validation-code">
