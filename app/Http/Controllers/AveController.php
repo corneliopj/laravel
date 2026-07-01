@@ -61,8 +61,8 @@ class AveController extends Controller
         $variacoes = Variacao::all();
         $lotes = Lote::all();
         $incubacoes = Incubacao::all();
-
-        return view('aves.criar', compact('tiposAves', 'variacoes', 'lotes', 'incubacoes'));
+        $avesOptions = Ave::all();
+        return view('aves.criar', compact('tiposAves', 'variacoes', 'lotes', 'incubacoes', 'avesOptions'));
     }
 
     /**
@@ -101,7 +101,8 @@ class AveController extends Controller
         $variacoes = Variacao::all();
         $lotes = Lote::all();
         $incubacoes = Incubacao::all();
-        return view('aves.editar', compact('ave', 'tiposAves', 'variacoes', 'lotes', 'incubacoes'));
+        $avesOptions = Ave::all(); // Garantindo o carregamento aqui
+        return view('aves.editar', compact('ave', 'tiposAves', 'variacoes', 'lotes', 'incubacoes', 'avesOptions'));
     }
 
     /**
