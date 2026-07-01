@@ -144,12 +144,12 @@
                                     </div>
 
                                     <div class="mb-3">
-                                        <label for="pai_id" class="form-label">Pai (Matrícula)</label>
+                                        <label for="pai_id" class="form-label">Pai (Selecione do Plantel)</label>
                                         <select class="form-select form-select-sm" id="pai_id" name="pai_id">
-                                            <option value="">Selecione o pai (opcional)</option>
+                                            <option value="">Selecione o pai do plantel (opcional)</option>
                                             @foreach ($avesOptions as $aveOption)
                                                 @if($aveOption->sexo == 'Macho')
-                                                    <option value="{{ $aveOption->id }}" {{ old('pai_id', $ave->pai_id) == $aveOption->id ? 'selected' : '' }}>
+                                                    <option value="{{ $aveOption->id }}" data-tipo-ave-id="{{ $aveOption->tipo_ave_id }}" {{ old('pai_id', $ave->pai_id) == $aveOption->id ? 'selected' : '' }}>
                                                         {{ $aveOption->matricula }}
                                                     </option>
                                                 @endif
@@ -157,17 +157,25 @@
                                         </select>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="mae_id" class="form-label">Mãe (Matrícula)</label>
+                                        <label for="pai_externo" class="form-label">Nome do Pai (Se não for do Plantel)</label>
+                                        <input type="text" class="form-control form-control-sm" id="pai_externo" name="pai_externo" value="{{ old('pai_externo', $ave->pai_externo) }}" placeholder="Digite o nome do pai externo">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="mae_id" class="form-label">Mãe (Selecione do Plantel)</label>
                                         <select class="form-select form-select-sm" id="mae_id" name="mae_id">
-                                            <option value="">Selecione a mãe (opcional)</option>
+                                            <option value="">Selecione a mãe do plantel (opcional)</option>
                                             @foreach ($avesOptions as $aveOption)
                                                 @if($aveOption->sexo == 'Femea')
-                                                    <option value="{{ $aveOption->id }}" {{ old('mae_id', $ave->mae_id) == $aveOption->id ? 'selected' : '' }}>
+                                                    <option value="{{ $aveOption->id }}" data-tipo-ave-id="{{ $aveOption->tipo_ave_id }}" {{ old('mae_id', $ave->mae_id) == $aveOption->id ? 'selected' : '' }}>
                                                         {{ $aveOption->matricula }}
                                                     </option>
                                                 @endif
                                             @endforeach
                                         </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="mae_externa" class="form-label">Nome da Mãe (Se não for do Plantel)</label>
+                                        <input type="text" class="form-control form-control-sm" id="mae_externa" name="mae_externa" value="{{ old('mae_externa', $ave->mae_externa) }}" placeholder="Digite o nome da mãe externa">
                                     </div>
                                     <div class="mb-3">
                                         <label for="criatorio_origem" class="form-label">Criatório de Origem</label>
