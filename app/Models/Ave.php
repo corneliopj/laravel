@@ -27,6 +27,12 @@ class Ave extends Model
         'vendavel',
         'ativo',
         'data_inativado',
+        'pai_id',
+        'mae_id',
+        'pai_externo',
+        'mae_externa',
+        'criatorio_origem',
+        'registro_abrasb',
     ];
 
     protected $casts = [
@@ -35,6 +41,16 @@ class Ave extends Model
         'ativo' => 'boolean',
         'data_inativado' => 'datetime',
     ];
+
+    public function pai()
+    {
+        return $this->belongsTo(Ave::class, 'pai_id');
+    }
+
+    public function mae()
+    {
+        return $this->belongsTo(Ave::class, 'mae_id');
+    }
 
     /**
      * Uma ave pertence a um tipo de ave.

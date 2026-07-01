@@ -128,26 +128,34 @@
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="pai_id">Pai (Matrícula)</label>
+                                        <label for="pai_id">Pai (Selecione do Plantel)</label>
                                         <select class="form-control" id="pai_id" name="pai_id">
-                                            <option value="">Selecione o pai (opcional)</option>
+                                            <option value="">Selecione o pai do plantel (opcional)</option>
                                             @foreach ($avesOptions as $aveOption)
                                                 @if($aveOption->sexo == 'Macho')
-                                                    <option value="{{ $aveOption->id }}" {{ old('pai_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
+                                                    <option value="{{ $aveOption->id }}" data-tipo-ave-id="{{ $aveOption->tipo_ave_id }}" {{ old('pai_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
                                                 @endif
                                             @endforeach
                                         </select>
                                     </div>
                                     <div class="form-group">
-                                        <label for="mae_id">Mãe (Matrícula)</label>
+                                        <label for="pai_externo">Nome do Pai (Se não for do Plantel)</label>
+                                        <input type="text" class="form-control" id="pai_externo" name="pai_externo" placeholder="Digite o nome do pai externo" value="{{ old('pai_externo') }}">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mae_id">Mãe (Selecione do Plantel)</label>
                                         <select class="form-control" id="mae_id" name="mae_id">
-                                            <option value="">Selecione a mãe (opcional)</option>
+                                            <option value="">Selecione a mãe do plantel (opcional)</option>
                                             @foreach ($avesOptions as $aveOption)
                                                 @if($aveOption->sexo == 'Femea')
-                                                    <option value="{{ $aveOption->id }}" {{ old('mae_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
+                                                    <option value="{{ $aveOption->id }}" data-tipo-ave-id="{{ $aveOption->tipo_ave_id }}" {{ old('mae_id') == $aveOption->id ? 'selected' : '' }}>{{ $aveOption->matricula }}</option>
                                                 @endif
                                             @endforeach
                                         </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="mae_externa">Nome da Mãe (Se não for do Plantel)</label>
+                                        <input type="text" class="form-control" id="mae_externa" name="mae_externa" placeholder="Digite o nome da mãe externa" value="{{ old('mae_externa') }}">
                                     </div>
                                     <div class="form-group">
                                         <label for="criatorio_origem">Criatório de Origem</label>
@@ -212,32 +220,29 @@
             function filterVariacoes() {
                 const selectedTipoAveId = tipoAveSelect.value;
                 
-                // Limpa as opções atuais do select de variação, exceto a primeira (opção "Selecione...")
+                // Filtra Variações
                 variacaoSelect.innerHTML = '';
-                variacaoSelect.appendChild(allVariacaoOptions[0]); // Adiciona a opção padrão de volta
-
+                variacaoSelect.appendChild(allVariacaoOptions[0]);
                 allVariacaoOptions.forEach(option => {
-                    if (option.value === "") return; // Ignora a opção padrão
-
-                    const tipoAveIdForOption = option.dataset.tipoAveId;
-
-                    if (selectedTipoAveId === "" || tipoAveIdForOption === selectedTipoAveId) {
+                    if (option.value === "") return;
+                    if (selectedTipoAveId === "" || option.dataset.tipoAveId === selectedTipoAveId) {
                         variacaoSelect.appendChild(option);
                     }
                 });
 
-                // Tenta pré-selecionar a variação se houver um old('variacao_id')
-                const oldVariacaoId = "{{ old('variacao_id') }}";
-                if (oldVariacaoId) {
-                    const foundOption = allVariacaoOptions.find(option => option.value === oldVariacaoId);
-                    if (foundOption && (foundOption.dataset.tipoAveId === selectedTipoAveId || selectedTipoAveId === "")) {
-                        variacaoSelect.value = oldVariacaoId;
-                    } else {
-                        variacaoSelect.value = ""; // Limpa se a variação antiga não for compatível
-                    }
-                } else {
-                    variacaoSelect.value = ""; // Garante que nada está selecionado se não houver old value
-                }
+                // Filtra Pai e Mãe (Plantel)
+                const paiSelect = document.getElementById('pai_id');
+                const maeSelect = document.getElementById('mae_id');
+                [paiSelect, maeSelect].forEach(select => {
+                    const originalOptions = Array.from(select.options);
+                    select.innerHTML = '';
+                    select.appendChild(originalOptions[0]);
+                    originalOptions.forEach(option => {
+                        if (option.value === "" || selectedTipoAveId === "" || option.dataset.tipoAveId === selectedTipoAveId) {
+                            select.appendChild(option);
+                        }
+                    });
+                });
             }
 
             // Adiciona o ouvinte de evento para o select de Tipo de Ave
