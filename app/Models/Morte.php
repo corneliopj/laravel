@@ -12,11 +12,11 @@ class Morte extends Model
     protected $table = 'mortes'; // Assegura o nome correto da tabela
 
     protected $fillable = [
-        'ave_id', // Chave estrangeira para ave individual (pode ser nulo)
-        'plantel_id', // Chave estrangeira para plantel agrupado (pode ser nulo)
-        'quantidade_mortes_plantel', // Quantidade de aves mortas se for um registro de plantel
+        'ave_id', 
+        'plantel_id', 
+        'quantidade_mortes_plantel', 
         'data_morte',
-        'causa_morte',
+        'causa',
         'observacoes',
     ];
 
