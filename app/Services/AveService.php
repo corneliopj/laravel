@@ -85,20 +85,18 @@ class AveService
         $data['ativo'] = true;
 
         if ($foto) {
-            $matricula = Str::slug($data['matricula']); // Usar a matrícula para o nome do arquivo
+            $matricula = Str::slug($data['matricula']);
             $extension = $foto->getClientOriginalExtension();
             $fileName = $matricula . '.' . $extension;
-            $destinationPath = public_path('/aves_fotos'); // Caminho completo para a pasta public
+            $destinationPath = public_path('/aves_fotos');
 
-            // Criar o diretório se não existir
             if (!file_exists($destinationPath)) {
                 mkdir($destinationPath, 0777, true);
             }
 
-            // Redimensionar e salvar a imagem (150x150px, preenchendo o quadrado)
             Image::read($foto)->cover(150, 150)->save($destinationPath . '/' . $fileName);
 
-            $data['foto_path'] = 'aves_fotos/' . $fileName; // Salvar o caminho relativo para o banco
+            $data['foto_path'] = 'aves_fotos/' . $fileName;
         } else {
             $data['foto_path'] = null;
         }
