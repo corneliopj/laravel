@@ -250,8 +250,16 @@
             <div class="section">
                 <h2>Dados Genótipos</h2>
                 @if($ave->pai || $ave->mae || $ave->criatorio_origem || $ave->registro_abrasb)
-                    @if($ave->pai) <p class="info-row"><strong>Pai:</strong> <span>{{ $ave->pai->matricula }}</span></p> @endif
-                    @if($ave->mae) <p class="info-row"><strong>Mãe:</strong> <span>{{ $ave->mae->matricula }}</span></p> @endif
+                @if($ave->pai || $ave->pai_externo) 
+                    <p class="info-row"><strong>Pai:</strong> 
+                        <span>{{ $ave->pai_externo ?: ($ave->pai->matricula ?? 'N/A') }}</span>
+                    </p> 
+                @endif
+                @if($ave->mae || $ave->mae_externa) 
+                    <p class="info-row"><strong>Mãe:</strong> 
+                        <span>{{ $ave->mae_externa ?: ($ave->mae->matricula ?? 'N/A') }}</span>
+                    </p> 
+                @endif
                     @if($ave->criatorio_origem) <p class="info-row"><strong>Criatório:</strong> <span>{{ $ave->criatorio_origem }}</span></p> @endif
                     @if($ave->registro_abrasb) <p class="info-row"><strong>Registro ABRASB:</strong> <span>{{ $ave->registro_abrasb }}</span></p> @endif
                 @else
