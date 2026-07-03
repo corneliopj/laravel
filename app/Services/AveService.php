@@ -25,7 +25,7 @@ class AveService
             'tipoAve:id,nome',
             'variacao:id,nome',
             'lote:id,identificacao_lote',
-            'mortes:id,animal_id'
+            'mortes:id,ave_id' // Corrigido de animal_id para ave_id
         ]);
 
         $status = $request->input('status');
