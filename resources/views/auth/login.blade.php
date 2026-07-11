@@ -15,7 +15,7 @@
 <div class="login-box">
     <div class="login-logo">
         {{-- Adiciona a imagem do logo aqui --}}
-        <img src="{{ asset('img/logo.png') }}" alt="Logo Criatório Coroné" class="img-fluid mb-2" style="max-width: 150px; display: block; margin: 0 auto;">
+        <img src="{{ asset('img/logo.png') }}?v=2" alt="Logo Criatório Coroné" class="img-fluid mb-2" style="max-width: 150px; display: block; margin: 0 auto;">
         <a href="{{ url('/') }}"><b>Criatório</b>Coroné</a>
     </div>
     <div class="card">
